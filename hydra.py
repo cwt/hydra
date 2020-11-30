@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 import os
-import paramiko
 import sys
+import paramiko
 
-command = ' '.join(sys.argv[2:])
+COMMAND = ' '.join(sys.argv[2:])
 clients = dict()
 
 with open(sys.argv[1], 'r') as hosts:
@@ -28,12 +28,19 @@ with open(sys.argv[1], 'r') as hosts:
                     password=password
                 )
 
-for name in clients.keys():
-    prompt = f'[{name}] '
-    terminal_columns = os.get_terminal_size().columns
+max_name = max([len(name) for name in clients])
+for name in clients:
+    prompt = f'[{name.rjust(max_name)}] '
+    terminal_columns = 80
+    try:
+        terminal_columns = int(
+            os.environ.get('COLUMNS', os.get_terminal_size().columns)
+        )
+    except Exception:
+        pass
     remote_columns = terminal_columns - len(prompt)
     ssh_stdin, ssh_stdout, ssh_stderr = clients[name].exec_command(
-        f'export COLUMNS={remote_columns} && {command}',
+        f'export COLUMNS={remote_columns} && {COMMAND}',
         get_pty=True
     )
     lines = 0
@@ -43,7 +50,7 @@ for name in clients.keys():
     if lines > 1:
         print('-' * terminal_columns)
 
-for name in clients.keys():
-    if clients[name]._transport:
+for name in clients:
+    transport = getattr(clients[name], '_transport', None)
+    if transport:
         clients[name].close()
-
