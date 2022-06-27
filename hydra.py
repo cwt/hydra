@@ -43,14 +43,13 @@ for name in clients:
         f'export COLUMNS={remote_columns} && {COMMAND}',
         get_pty=True
     )
+    ssh_stdin.close()
     lines = 0
     for line in ssh_stdout:
         print(f'{prompt}{line.strip()}')
         lines += 1
     if lines > 1:
         print('-' * terminal_columns)
-
-for name in clients:
-    transport = getattr(clients[name], '_transport', None)
-    if transport:
+    if getattr(clients[name], '_transport', None):
         clients[name].close()
+
