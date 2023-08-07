@@ -78,9 +78,8 @@ async def execute(
                     term_type="ansi",
                     term_size=(remote_width, 1000),  # Large height for long outputs
                 )
-                output = result.stdout.rstrip()
                 await output_queue.put(
-                    output
+                    result.stdout
                 )  # Put output into the host's output queue
             else:
                 async with conn.create_process(
@@ -90,10 +89,9 @@ async def execute(
                 ) as process:
                     async for line in process.stdout:
                         line = line.rstrip()
-                        if line:
-                            await output_queue.put(
-                                line
-                            )  # Put output into the host's output queue
+                        await output_queue.put(
+                            line
+                        )  # Put output into the host's output queue
             await output_queue.put(
                 f"{HOST_COLOR[host_name]}" + "-" * remote_width + f"{RESET}"
             )  # Signal end of output
