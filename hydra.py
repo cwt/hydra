@@ -100,7 +100,12 @@ async def execute(
         await output_queue.put(f"Error connecting to {host_name}: {error}")
 
 
-async def print_output(host_name: str, max_name_length: int, separate_output: bool):
+async def print_output(
+    host_name: str,
+    max_name_length: int,
+    separate_output: bool,
+    allow_empty_line: bool,
+):
     """Print the output from the remote host with the appropriate prompt."""
     output_queue = OUTPUT_QUEUES[host_name]
     prompt = await get_prompt(host_name, max_name_length)
@@ -111,14 +116,24 @@ async def print_output(host_name: str, max_name_length: int, separate_output: bo
             break
         if separate_output:
             for line in output.split("\n"):
-                print(f"{prompt}{line}")
+                if allow_empty_line:
+                    print(f"{prompt}{line}")
+                elif line.strip():
+                    print(f"{prompt}{line}")
         else:
-            sys.stdout.write(f"{prompt}{output}\n")
+            if allow_empty_line:
+                sys.stdout.write(f"{prompt}{output}\n")
+            elif output.strip():
+                sys.stdout.write(f"{prompt}{output}\n")
             sys.stdout.flush()
 
 
 async def main(
-    host_file: str, ssh_command: str, local_display_width: int, separate_output: bool
+    host_file: str,
+    ssh_command: str,
+    local_display_width: int,
+    separate_output: bool,
+    allow_empty_line: bool,
 ) -> None:
     """Main entry point of the script."""
     hosts_to_execute: List[Tuple[str, str, int, str, Optional[str]]] = []
@@ -143,7 +158,7 @@ async def main(
 
     for host_name, *_ in hosts_to_execute:
         asyncio.ensure_future(
-            print_output(host_name, max_name_length, separate_output)
+            print_output(host_name, max_name_length, separate_output, allow_empty_line)
         )
 
     tasks = [
@@ -186,6 +201,12 @@ if __name__ == "__main__":
         type=int,
         help="Set terminal width",
     )
+    parser.add_argument(
+        "-A",
+        "--allow-empty-line",
+        action="store_true",
+        help="Allow printing the empty line",
+    )
     args = parser.parse_args()
 
     HOST_FILE: str = args.host_file
@@ -199,4 +220,12 @@ if __name__ == "__main__":
 
     if uvloop:
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-    asyncio.run(main(HOST_FILE, SSH_COMMAND, LOCAL_DISPLAY_WIDTH, args.separate_output))
+    asyncio.run(
+        main(
+            HOST_FILE,
+            SSH_COMMAND,
+            LOCAL_DISPLAY_WIDTH,
+            args.separate_output,
+            args.allow_empty_line,
+        )
+    )
