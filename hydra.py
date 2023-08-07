@@ -182,16 +182,22 @@ if __name__ == "__main__":
         action="store_true",
         help="Print output from each host without interleaving",
     )
+    parser.add_argument(
+        "-W",
+        "--terminal-width",
+        type=int,
+        help="Set default terminal width",
+    )
     args = parser.parse_args()
 
     HOST_FILE: str = args.host_file
     SSH_COMMAND: str = " ".join(args.command)
     try:
-        LOCAL_DISPLAY_WIDTH = int(
+        LOCAL_DISPLAY_WIDTH = args.terminal_width or int(
             os.environ.get("COLUMNS", os.get_terminal_size().columns)
         )
     except OSError:
-        LOCAL_DISPLAY_WIDTH = 80
+        LOCAL_DISPLAY_WIDTH = args.terminal_width or 80
 
     if uvloop:
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
