@@ -143,7 +143,7 @@ async def main(
 
     for host_name, *_ in hosts_to_execute:
         asyncio.ensure_future(
-            print_output(host_name, max_name_length, args.separate_output)
+            print_output(host_name, max_name_length, separate_output)
         )
 
     tasks = [
