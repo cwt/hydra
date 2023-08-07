@@ -184,7 +184,7 @@ if __name__ == "__main__":
         "-W",
         "--terminal-width",
         type=int,
-        help="Set default terminal width",
+        help="Set terminal width",
     )
     args = parser.parse_args()
 
