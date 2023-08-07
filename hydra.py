@@ -16,19 +16,21 @@ from typing import Dict, List, Tuple, Optional
 import asyncssh
 
 # ANSI escape codes for text colors
-RED = '\033[91m'
-GREEN = '\033[92m'
-YELLOW = '\033[93m'
-BLUE = '\033[94m'
-MAGENTA = '\033[95m'
-CYAN = '\033[96m'
-RESET = '\033[0m'
+RED = "\033[91m"
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
+BLUE = "\033[94m"
+MAGENTA = "\033[95m"
+CYAN = "\033[96m"
+RESET = "\033[0m"
 
 COLORS = [RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN]
 shuffle(COLORS)
 COLORS_CYCLE = cycle(COLORS)
 HOST_COLOR: Dict[str, str] = {}
-OUTPUT_QUEUES: Dict[str, asyncio.Queue] = {}  # Dictionary to hold separate output queues for each host
+OUTPUT_QUEUES: Dict[
+    str, asyncio.Queue
+] = {}  # Dictionary to hold separate output queues for each host
 
 try:
     import uvloop
@@ -77,7 +79,9 @@ async def execute(
                     term_size=(remote_width, 1000),  # Large height for long outputs
                 )
                 output = result.stdout.rstrip()
-                await output_queue.put(output)  # Put output into the host's output queue
+                await output_queue.put(
+                    output
+                )  # Put output into the host's output queue
             else:
                 async with conn.create_process(
                     f"export COLUMNS={remote_width} && {ssh_command}",
@@ -87,8 +91,12 @@ async def execute(
                     async for line in process.stdout:
                         line = line.rstrip()
                         if line:
-                            await output_queue.put(line)  # Put output into the host's output queue
-            await output_queue.put(f"{HOST_COLOR[host_name]}" + "-" * remote_width + f"{RESET}")  # Signal end of output
+                            await output_queue.put(
+                                line
+                            )  # Put output into the host's output queue
+            await output_queue.put(
+                f"{HOST_COLOR[host_name]}" + "-" * remote_width + f"{RESET}"
+            )  # Signal end of output
 
     except asyncssh.Error as error:
         await output_queue.put(f"Error connecting to {host_name}: {error}")
@@ -111,7 +119,9 @@ async def print_output(host_name: str, max_name_length: int, separate_output: bo
             sys.stdout.flush()
 
 
-async def main(host_file: str, ssh_command: str, local_display_width: int, separate_output: bool) -> None:
+async def main(
+    host_file: str, ssh_command: str, local_display_width: int, separate_output: bool
+) -> None:
     """Main entry point of the script."""
     hosts_to_execute: List[Tuple[str, str, int, str, Optional[str]]] = []
 
@@ -129,10 +139,14 @@ async def main(host_file: str, ssh_command: str, local_display_width: int, separ
     max_name_length = max(len(name) for name, *_ in hosts_to_execute)
 
     for host_name, *_ in hosts_to_execute:
-        OUTPUT_QUEUES[host_name] = asyncio.Queue()  # Create an output queue for each host
+        OUTPUT_QUEUES[
+            host_name
+        ] = asyncio.Queue()  # Create an output queue for each host
 
     for host_name, *_ in hosts_to_execute:
-        asyncio.ensure_future(print_output(host_name, max_name_length, args.separate_output))
+        asyncio.ensure_future(
+            print_output(host_name, max_name_length, args.separate_output)
+        )
 
     tasks = [
         execute(
@@ -157,10 +171,17 @@ async def main(host_file: str, ssh_command: str, local_display_width: int, separ
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Execute commands on multiple remote hosts via SSH.")
+    parser = argparse.ArgumentParser(
+        description="Execute commands on multiple remote hosts via SSH."
+    )
     parser.add_argument("host_file", help="File containing host information")
     parser.add_argument("command", nargs="+", help="Command to execute on remote hosts")
-    parser.add_argument("-S", "--separate-output", action="store_true", help="Print output from each host without interleaving")
+    parser.add_argument(
+        "-S",
+        "--separate-output",
+        action="store_true",
+        help="Print output from each host without interleaving",
+    )
     args = parser.parse_args()
 
     HOST_FILE: str = args.host_file
