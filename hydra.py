@@ -47,6 +47,71 @@ async def get_prompt(host_name: str, max_name_length: int) -> str:
     return f"{HOST_COLOR.get(host_name)}[{host_name.rjust(max_name_length)}]{RESET} "
 
 
+async def establish_ssh_connection(
+    ip_address: str,
+    ssh_port: int,
+    username: str,
+    password: Optional[str],
+) -> asyncssh.SSHClientConnection:
+    """Establish an SSH connection with the given credentials."""
+    try:
+        conn = await asyncssh.connect(
+            host=ip_address,
+            port=ssh_port,
+            username=username,
+            password=password,
+            known_hosts=None,  # Set to None to disable host key checks
+        )
+        return conn
+    except asyncssh.Error as error:
+        raise ConnectionError(f"Error connecting: {error}")
+
+
+async def execute_command(
+    conn: asyncssh.SSHClientConnection,
+    ssh_command: str,
+    remote_width: int,
+) -> str:
+    """Execute the given command on the remote host through the SSH connection."""
+    try:
+        result = await conn.run(
+            f"export COLUMNS={remote_width} && {ssh_command}",
+            term_type="ansi",
+            term_size=(
+                remote_width,
+                1000,
+            ),  # Large height for long outputs
+        )
+        return result.stdout
+    except asyncssh.Error as error:
+        raise RuntimeError(f"Error executing command: {error}")
+    finally:
+        conn.close()
+
+
+async def stream_command_output(
+    conn: asyncssh.SSHClientConnection,
+    ssh_command: str,
+    remote_width: int,
+    output_queue: asyncio.Queue,
+) -> None:
+    """Stream the output of the command from the remote host to the output queue."""
+    try:
+        async with conn.create_process(
+            f"export COLUMNS={remote_width} && {ssh_command}",
+            term_type="ansi",
+            term_size=(
+                remote_width,
+                1000,
+            ),  # Large height for long outputs
+        ) as process:
+            async for line in process.stdout:
+                line = line.rstrip()
+                await output_queue.put(line)  # Put output into the host's output queue
+    except asyncssh.Error as error:
+        await output_queue.put(f"Error executing command: {error}")
+
+
 async def execute(
     host_name: str,
     ip_address: str,
@@ -61,43 +126,26 @@ async def execute(
     """Establish an SSH connection and execute a command on a remote host."""
     prompt = await get_prompt(host_name, max_name_length)
     remote_width = local_display_width - len(prompt)
-
     output_queue = OUTPUT_QUEUES[host_name]  # Get the host-specific output queue
 
     try:
-        async with asyncssh.connect(
-            host=ip_address,
-            port=ssh_port,
-            username=username,
-            password=password,
-            known_hosts=None,  # Set to None to disable host key checks
-        ) as conn:
-            if separate_output:
-                result = await conn.run(
-                    f"export COLUMNS={remote_width} && {ssh_command}",
-                    term_type="ansi",
-                    term_size=(remote_width, 1000),  # Large height for long outputs
-                )
-                await output_queue.put(
-                    result.stdout
-                )  # Put output into the host's output queue
-            else:
-                async with conn.create_process(
-                    f"export COLUMNS={remote_width} && {ssh_command}",
-                    term_type="ansi",
-                    term_size=(remote_width, 1000),  # Large height for long outputs
-                ) as process:
-                    async for line in process.stdout:
-                        line = line.rstrip()
-                        await output_queue.put(
-                            line
-                        )  # Put output into the host's output queue
-            await output_queue.put(
-                f"{HOST_COLOR[host_name]}" + "-" * remote_width + f"{RESET}"
-            )  # Signal end of output
-
-    except asyncssh.Error as error:
+        conn = await establish_ssh_connection(ip_address, ssh_port, username, password)
+    except ConnectionError as error:
         await output_queue.put(f"Error connecting to {host_name}: {error}")
+        return
+
+    try:
+        if separate_output:
+            output = await execute_command(conn, ssh_command, remote_width)
+            await output_queue.put(output)  # Put output into the host's output queue
+        else:
+            await stream_command_output(conn, ssh_command, remote_width, output_queue)
+    except RuntimeError as error:
+        await output_queue.put(f"Error executing command on {host_name}: {error}")
+
+    await output_queue.put(
+        f"{HOST_COLOR[host_name]}" + "-" * remote_width + f"{RESET}"
+    )  # Signal end of output
 
 
 async def print_output(
@@ -116,16 +164,11 @@ async def print_output(
             break
         if separate_output:
             for line in output.split("\n"):
-                if allow_empty_line:
-                    print(f"{prompt}{line}")
-                elif line.strip():
+                if allow_empty_line or line.strip():
                     print(f"{prompt}{line}")
         else:
-            if allow_empty_line:
-                sys.stdout.write(f"{prompt}{output}\n")
-            elif output.strip():
-                sys.stdout.write(f"{prompt}{output}\n")
-            sys.stdout.flush()
+            if allow_empty_line or output.strip():
+                print(f"{prompt}{output}")
 
 
 async def main(
@@ -142,11 +185,23 @@ async def main(
         for line in hosts:
             line = line.strip()
             if line and not line.startswith("#"):
-                host_name, ip_address, ssh_port, username, password = line.split(",")
+                (
+                    host_name,
+                    ip_address,
+                    ssh_port,
+                    username,
+                    password,
+                ) = line.split(",")
                 ssh_port = int(ssh_port)
                 password = None if password == "#" else password
                 hosts_to_execute.append(
-                    (host_name, ip_address, ssh_port, username, password)
+                    (
+                        host_name,
+                        ip_address,
+                        ssh_port,
+                        username,
+                        password,
+                    )
                 )
 
     max_name_length = max(len(name) for name, *_ in hosts_to_execute)
@@ -158,7 +213,12 @@ async def main(
 
     for host_name, *_ in hosts_to_execute:
         asyncio.ensure_future(
-            print_output(host_name, max_name_length, separate_output, allow_empty_line)
+            print_output(
+                host_name,
+                max_name_length,
+                separate_output,
+                allow_empty_line,
+            )
         )
 
     tasks = [
@@ -188,7 +248,11 @@ if __name__ == "__main__":
         description="Execute commands on multiple remote hosts via SSH."
     )
     parser.add_argument("host_file", help="File containing host information")
-    parser.add_argument("command", nargs="+", help="Command to execute on remote hosts")
+    parser.add_argument(
+        "command",
+        nargs="+",
+        help="Command to execute on remote hosts",
+    )
     parser.add_argument(
         "-S",
         "--separate-output",
