@@ -32,6 +32,9 @@ OUTPUT_QUEUES: Dict[
     str, asyncio.Queue
 ] = {}  # Dictionary to hold separate output queues for each host
 
+# Large height for long outputs
+LINES = 1000
+
 try:
     import uvloop
 except ImportError:
@@ -75,12 +78,10 @@ async def execute_command(
     """Execute the given command on the remote host through the SSH connection."""
     try:
         result = await conn.run(
-            f"export COLUMNS={remote_width} && {ssh_command}",
+            command=f"env COLUMNS={remote_width} LINES={LINES} {ssh_command}",
             term_type="ansi",
-            term_size=(
-                remote_width,
-                1000,
-            ),  # Large height for long outputs
+            term_size=(remote_width, LINES),
+            env={}
         )
         return result.stdout
     except asyncssh.Error as error:
@@ -98,12 +99,10 @@ async def stream_command_output(
     """Stream the output of the command from the remote host to the output queue."""
     try:
         async with conn.create_process(
-            f"export COLUMNS={remote_width} && {ssh_command}",
+            command=f"env COLUMNS={remote_width} LINES={LINES} {ssh_command}",
             term_type="ansi",
-            term_size=(
-                remote_width,
-                1000,
-            ),  # Large height for long outputs
+            term_size=(remote_width, 1000),
+            env={},
         ) as process:
             async for line in process.stdout:
                 line = line.rstrip()
@@ -125,7 +124,7 @@ async def execute(
 ) -> None:
     """Establish an SSH connection and execute a command on a remote host."""
     prompt = await get_prompt(host_name, max_name_length)
-    remote_width = local_display_width - len(prompt)
+    remote_width = local_display_width - max_name_length - 3
     output_queue = OUTPUT_QUEUES[host_name]  # Get the host-specific output queue
 
     try:
@@ -144,7 +143,7 @@ async def execute(
         await output_queue.put(f"Error executing command on {host_name}: {error}")
 
     await output_queue.put(
-        f"{HOST_COLOR[host_name]}" + "-" * remote_width + f"{RESET}"
+        f"{HOST_COLOR.get(host_name)}" + "-" * remote_width + f"{RESET}"
     )  # Signal end of output
 
 
