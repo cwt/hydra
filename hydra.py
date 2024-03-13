@@ -150,7 +150,6 @@ async def execute(
 async def print_output(
     host_name: str,
     max_name_length: int,
-    separate_output: bool,
     allow_empty_line: bool,
 ):
     """Print the output from the remote host with the appropriate prompt."""
@@ -161,13 +160,14 @@ async def print_output(
         output = await output_queue.get()
         if output is None:
             break
-        if separate_output:
-            for line in output.split("\n"):
-                if allow_empty_line or line.strip():
-                    print(f"{prompt}{line}")
-        else:
-            if allow_empty_line or output.strip():
-                print(f"{prompt}{output}")
+        output = output.replace("\x1b[K", "\x1b[K\r\n")
+        for line in output.split("\r\n"):
+            if allow_empty_line or line.strip():
+                if line.startswith("\x1b[1"):
+                    line = f"{line[:4]}{prompt}{line[4:]}"
+                else:
+                    line = f"{prompt}{line}"
+                print(line)
 
 
 async def main(
@@ -215,7 +215,6 @@ async def main(
             print_output(
                 host_name,
                 max_name_length,
-                separate_output,
                 allow_empty_line,
             )
         )
