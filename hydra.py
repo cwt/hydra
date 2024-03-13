@@ -81,7 +81,7 @@ async def execute_command(
             command=f"env COLUMNS={remote_width} LINES={LINES} {ssh_command}",
             term_type="ansi",
             term_size=(remote_width, LINES),
-            env={}
+            env={},
         )
         return result.stdout
     except asyncssh.Error as error:
