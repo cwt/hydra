@@ -5,6 +5,8 @@ remote hosts at once via SSH. With Hydra, you can streamline your workflow,
 automate repetitive tasks, and save time and effort.
 """
 
+VERSION = "0.9"
+
 import argparse
 import asyncio
 import os
@@ -36,7 +38,10 @@ OUTPUT_QUEUES: Dict[
 LINES = 1000
 
 try:
-    import uvloop
+    if sys.platform == 'win32':
+        import winloop as uvloop
+    else:
+        import uvloop
 except ImportError:
     uvloop = None
 
@@ -269,6 +274,12 @@ if __name__ == "__main__":
         action="store_true",
         help="Allow printing the empty line",
     )
+    parser.add_argument(
+        "-V",
+        "--version",
+        action="store_true",
+        help="Show the version of Hydra",
+    )
     args = parser.parse_args()
 
     HOST_FILE: str = args.host_file
@@ -282,6 +293,8 @@ if __name__ == "__main__":
 
     if uvloop:
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+    if args.version:
+        print(f'Hydra-{VERSION} powered by {asyncio.get_event_loop_policy().__module__}')
     asyncio.run(
         main(
             HOST_FILE,
