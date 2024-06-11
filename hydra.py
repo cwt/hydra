@@ -283,14 +283,14 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    HOST_FILE: str = args.host_file
-    SSH_COMMAND: str = " ".join(args.command)
+    host_file: str = args.host_file
+    ssh_command: str = " ".join(args.command)
     try:
-        LOCAL_DISPLAY_WIDTH = args.terminal_width or int(
+        local_display_width = args.terminal_width or int(
             os.environ.get("COLUMNS", os.get_terminal_size().columns)
         )
     except OSError:
-        LOCAL_DISPLAY_WIDTH = args.terminal_width or 80
+        local_display_width = args.terminal_width or 80
 
     if uvloop:
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -298,9 +298,9 @@ if __name__ == "__main__":
         print(f'Hydra-{VERSION} powered by {asyncio.get_event_loop_policy().__module__}')
     asyncio.run(
         main(
-            HOST_FILE,
-            SSH_COMMAND,
-            LOCAL_DISPLAY_WIDTH,
+            host_file,
+            ssh_command,
+            local_display_width,
             args.separate_output,
             args.allow_empty_line,
         )
