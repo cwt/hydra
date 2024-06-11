@@ -167,12 +167,13 @@ async def print_output(
             break
         output = output.replace("\x1b[K", "\x1b[K\r\n")
         for line in output.split("\r\n"):
+            if line.startswith("\x1b["):
+                line = line.replace("\x1b[1E", f"\x1b[1E{prompt}")
+                line = line.replace("\x1b[1F", f"\x1b[1F{prompt}")
+                line = line.replace("\x1b[?25l", "")
+                line = line.replace("\x1b[?25h", "")
             if allow_empty_line or line.strip():
-                if line.startswith("\x1b[1"):
-                    line = f"{line[:4]}{prompt}{line[4:]}"
-                else:
-                    line = f"{prompt}{line}"
-                print(line)
+                print(f"{prompt}{line.rstrip()}{RESET}")
 
 
 async def main(
