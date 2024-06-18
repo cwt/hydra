@@ -49,9 +49,7 @@ except ImportError:
 async def get_prompt(host_name: str, max_name_length: int) -> str:
     """Generate a formatted prompt for displaying the host's name."""
     if HOST_COLOR.get(host_name) is None:
-        for color in COLORS_CYCLE:
-            HOST_COLOR[host_name] = color
-            break
+        HOST_COLOR[host_name] = next(COLORS_CYCLE)
     return f"{HOST_COLOR.get(host_name)}[{host_name.rjust(max_name_length)}]{RESET} "
 
 
@@ -216,14 +214,15 @@ async def main(
             host_name
         ] = asyncio.Queue()  # Create an output queue for each host
 
-    for host_name, *_ in hosts_to_execute:
-        asyncio.ensure_future(
-            print_output(
-                host_name,
-                max_name_length,
-                allow_empty_line,
-            )
+    print_tasks = [
+        print_output(
+            host_name,
+            max_name_length,
+            allow_empty_line,
         )
+        for host_name, *_ in hosts_to_execute
+    ]
+    asyncio.ensure_future(asyncio.gather(*print_tasks))
 
     tasks = [
         execute(
