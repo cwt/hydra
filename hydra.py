@@ -38,7 +38,7 @@ OUTPUT_QUEUES: Dict[
 LINES = 1000
 
 try:
-    if sys.platform == 'win32':
+    if sys.platform == "win32":
         import winloop as uvloop
     else:
         import uvloop
@@ -295,7 +295,9 @@ if __name__ == "__main__":
     if uvloop:
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
     if args.version:
-        print(f'Hydra-{VERSION} powered by {asyncio.get_event_loop_policy().__module__}')
+        print(
+            f"Hydra-{VERSION} powered by {asyncio.get_event_loop_policy().__module__}"
+        )
     asyncio.run(
         main(
             host_file,
