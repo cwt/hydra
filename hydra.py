@@ -17,6 +17,8 @@ from typing import Dict, List, Tuple, Optional
 
 import asyncssh
 
+COLOR = True
+
 # ANSI escape codes for text colors
 RED = "\033[91m"
 GREEN = "\033[92m"
@@ -48,9 +50,11 @@ except ImportError:
 
 async def get_prompt(host_name: str, max_name_length: int) -> str:
     """Generate a formatted prompt for displaying the host's name."""
-    if HOST_COLOR.get(host_name) is None:
-        HOST_COLOR[host_name] = next(COLORS_CYCLE)
-    return f"{HOST_COLOR.get(host_name)}[{host_name.rjust(max_name_length)}]{RESET} "
+    if COLOR:
+        if HOST_COLOR.get(host_name) is None:
+            HOST_COLOR[host_name] = next(COLORS_CYCLE)
+        return f"{HOST_COLOR.get(host_name)}[{host_name.rjust(max_name_length)}]{RESET} "
+    return f"[{host_name.rjust(max_name_length)}] "
 
 
 async def establish_ssh_connection(
@@ -82,7 +86,7 @@ async def execute_command(
     try:
         result = await conn.run(
             command=f"env COLUMNS={remote_width} LINES={LINES} {ssh_command}",
-            term_type="ansi",
+            term_type="ansi" if COLOR else "dumb",
             term_size=(remote_width, LINES),
             env={},
         )
@@ -103,7 +107,7 @@ async def stream_command_output(
     try:
         async with conn.create_process(
             command=f"env COLUMNS={remote_width} LINES={LINES} {ssh_command}",
-            term_type="ansi",
+            term_type="ansi" if COLOR else "dumb",
             term_size=(remote_width, 1000),
             env={},
         ) as process:
@@ -145,9 +149,12 @@ async def execute(
     except RuntimeError as error:
         await output_queue.put(f"Error executing command on {host_name}: {error}")
 
-    await output_queue.put(
-        f"{HOST_COLOR.get(host_name)}" + "-" * remote_width + f"{RESET}"
-    )  # Signal end of output
+    # Signal end of output
+    ending_line = "-" * remote_width
+    if COLOR:
+        await output_queue.put(f"{HOST_COLOR.get(host_name)}{ending_line}{RESET}")
+    else:
+        await output_queue.put(ending_line)
 
 
 async def print_output(
@@ -257,6 +264,12 @@ if __name__ == "__main__":
         help="Command to execute on remote hosts",
     )
     parser.add_argument(
+        "-N",
+        "--no-color",
+        action="store_true",
+        help="Disable host coloring",
+    )
+    parser.add_argument(
         "-S",
         "--separate-output",
         action="store_true",
@@ -297,6 +310,7 @@ if __name__ == "__main__":
         print(
             f"Hydra-{VERSION} powered by {asyncio.get_event_loop_policy().__module__}"
         )
+    COLOR = not args.no_color
     asyncio.run(
         main(
             host_file,
