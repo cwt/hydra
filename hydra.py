@@ -32,9 +32,8 @@ COLORS = [RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN]
 shuffle(COLORS)
 COLORS_CYCLE = cycle(COLORS)
 HOST_COLOR: Dict[str, str] = {}
-OUTPUT_QUEUES: Dict[
-    str, asyncio.Queue
-] = {}  # Dictionary to hold separate output queues for each host
+# Dictionary to hold separate output queues for each host
+OUTPUT_QUEUES: Dict[str, asyncio.Queue] = {}
 
 # Large height for long outputs
 LINES = 1000
@@ -61,15 +60,38 @@ async def establish_ssh_connection(
     ip_address: str,
     ssh_port: int,
     username: str,
-    password: Optional[str],
+    key_path: Optional[str],
+    default_key: Optional[str],
 ) -> asyncssh.SSHClientConnection:
-    """Establish an SSH connection with the given credentials."""
+    """Establish an SSH connection using key authentication."""
     try:
+        # Determine which key(s) to use
+        if key_path and key_path != "#":
+            # Use specific key from host file
+            client_keys = key_path
+        elif default_key:
+            # Use key from -K option
+            client_keys = default_key
+        else:
+            # Fallback to common SSH key files in ~/.ssh/
+            ssh_dir = os.path.expanduser("~/.ssh")
+            common_keys = [
+                os.path.join(ssh_dir, "id_ed25519"),
+                os.path.join(ssh_dir, "id_rsa"),
+                os.path.join(ssh_dir, "id_ecdsa"),
+                os.path.join(ssh_dir, "id_dsa"),
+            ]
+            client_keys = [key for key in common_keys if os.path.exists(key)]
+            if not client_keys:
+                raise ConnectionError(
+                    "No SSH keys found in ~/.ssh/ and no key specified"
+                )
+
         conn = await asyncssh.connect(
             host=ip_address,
             port=ssh_port,
             username=username,
-            password=password,
+            client_keys=client_keys,
             known_hosts=None,  # Set to None to disable host key checks
         )
         return conn
@@ -113,7 +135,8 @@ async def stream_command_output(
         ) as process:
             async for line in process.stdout:
                 line = line.rstrip()
-                await output_queue.put(line)  # Put output into the host's output queue
+                # Put output into the host's output queue
+                await output_queue.put(line)
     except asyncssh.Error as error:
         await output_queue.put(f"Error executing command: {error}")
 
@@ -123,19 +146,24 @@ async def execute(
     ip_address: str,
     ssh_port: int,
     username: str,
-    password: Optional[str],
+    key_path: Optional[str],
     ssh_command: str,
     max_name_length: int,
     local_display_width: int,
     separate_output: bool,
+    default_key: Optional[str],
 ) -> None:
     """Establish an SSH connection and execute a command on a remote host."""
     prompt = await get_prompt(host_name, max_name_length)
     remote_width = local_display_width - max_name_length - 3
-    output_queue = OUTPUT_QUEUES[host_name]  # Get the host-specific output queue
+    output_queue = OUTPUT_QUEUES[
+        host_name
+    ]  # Get the host-specific output queue
 
     try:
-        conn = await establish_ssh_connection(ip_address, ssh_port, username, password)
+        conn = await establish_ssh_connection(
+            ip_address, ssh_port, username, key_path, default_key
+        )
     except ConnectionError as error:
         await output_queue.put(f"Error connecting to {host_name}: {error}")
         return
@@ -143,16 +171,23 @@ async def execute(
     try:
         if separate_output:
             output = await execute_command(conn, ssh_command, remote_width)
-            await output_queue.put(output)  # Put output into the host's output queue
+            # Put output into the host's output queue
+            await output_queue.put(output)
         else:
-            await stream_command_output(conn, ssh_command, remote_width, output_queue)
+            await stream_command_output(
+                conn, ssh_command, remote_width, output_queue
+            )
     except RuntimeError as error:
-        await output_queue.put(f"Error executing command on {host_name}: {error}")
+        await output_queue.put(
+            f"Error executing command on {host_name}: {error}"
+        )
 
     # Signal end of output
     ending_line = "-" * remote_width
     if COLOR:
-        await output_queue.put(f"{HOST_COLOR.get(host_name)}{ending_line}{RESET}")
+        await output_queue.put(
+            f"{HOST_COLOR.get(host_name)}{ending_line}{RESET}"
+        )
     else:
         await output_queue.put(ending_line)
 
@@ -187,6 +222,7 @@ async def main(
     local_display_width: int,
     separate_output: bool,
     allow_empty_line: bool,
+    default_key: Optional[str],
 ) -> None:
     """Main entry point of the script."""
     hosts_to_execute: List[Tuple[str, str, int, str, Optional[str]]] = []
@@ -200,33 +236,21 @@ async def main(
                     ip_address,
                     ssh_port,
                     username,
-                    password,
+                    key_path,
                 ) = line.split(",")
                 ssh_port = int(ssh_port)
-                password = None if password == "#" else password
                 hosts_to_execute.append(
-                    (
-                        host_name,
-                        ip_address,
-                        ssh_port,
-                        username,
-                        password,
-                    )
+                    (host_name, ip_address, ssh_port, username, key_path)
                 )
 
     max_name_length = max(len(name) for name, *_ in hosts_to_execute)
 
     for host_name, *_ in hosts_to_execute:
-        OUTPUT_QUEUES[
-            host_name
-        ] = asyncio.Queue()  # Create an output queue for each host
+        # Create an output queue for each host
+        OUTPUT_QUEUES[host_name] = asyncio.Queue()
 
     print_tasks = [
-        print_output(
-            host_name,
-            max_name_length,
-            allow_empty_line,
-        )
+        print_output(host_name, max_name_length, allow_empty_line)
         for host_name, *_ in hosts_to_execute
     ]
     asyncio.ensure_future(asyncio.gather(*print_tasks))
@@ -237,13 +261,14 @@ async def main(
             ip_address,
             ssh_port,
             username,
-            password,
+            key_path,
             ssh_command,
             max_name_length,
             local_display_width,
             separate_output,
+            default_key,
         )
-        for host_name, ip_address, ssh_port, username, password in hosts_to_execute
+        for host_name, ip_address, ssh_port, username, key_path in hosts_to_execute
     ]
 
     await asyncio.gather(*tasks)
@@ -293,6 +318,12 @@ if __name__ == "__main__":
         action="store_true",
         help="Show the version of Hydra",
     )
+    parser.add_argument(
+        "-K",
+        "--default-key",
+        type=str,
+        help="Path to default SSH private key",
+    )
     args = parser.parse_args()
 
     host_file: str = args.host_file
@@ -318,5 +349,6 @@ if __name__ == "__main__":
             local_display_width,
             args.separate_output,
             args.allow_empty_line,
+            args.default_key,
         )
     )
