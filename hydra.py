@@ -62,8 +62,10 @@ async def establish_ssh_connection(
     username: str,
     key_path: Optional[str],
     default_key: Optional[str],
+    timeout: float = 5.0,
+    max_retries: int = 2,
 ) -> asyncssh.SSHClientConnection:
-    """Establish an SSH connection using key authentication."""
+    """Establish an SSH connection using key authentication with timeout and retries."""
     try:
         # Determine which key(s) to use
         if key_path and key_path != "#":
@@ -87,16 +89,41 @@ async def establish_ssh_connection(
                     "No SSH keys found in ~/.ssh/ and no key specified"
                 )
 
-        conn = await asyncssh.connect(
-            host=ip_address,
-            port=ssh_port,
-            username=username,
-            client_keys=client_keys,
-            known_hosts=None,  # Set to None to disable host key checks
-        )
-        return conn
-    except asyncssh.Error as error:
-        raise ConnectionError(f"Error connecting: {error}")
+        # Attempt connection with retries
+        for attempt in range(max_retries + 1):
+            try:
+                conn = await asyncio.wait_for(
+                    asyncssh.connect(
+                        host=ip_address,
+                        port=ssh_port,
+                        username=username,
+                        client_keys=client_keys,
+                        known_hosts=None,  # Set to None to disable host key checks
+                        # Optimize connection by preferring faster ciphers/MACs
+                        encryption_algs=[
+                            "chacha20-poly1305@openssh.com",
+                            "aes128-ctr",
+                            "aes256-ctr",
+                        ],
+                        mac_algs=["hmac-sha2-256", "hmac-sha1"],
+                    ),
+                    timeout=timeout,
+                )
+                return conn
+            except asyncio.TimeoutError:
+                if attempt == max_retries:
+                    raise ConnectionError(
+                        f"Connection to {ip_address} timed out after {timeout}s"
+                    )
+                await asyncio.sleep(1)  # Brief delay before retry
+            except asyncssh.Error as error:
+                if attempt == max_retries:
+                    raise ConnectionError(
+                        f"Error connecting to {ip_address}: {error}"
+                    )
+                await asyncio.sleep(1)  # Brief delay before retry
+    except Exception as error:
+        raise ConnectionError(f"Error connecting to {ip_address}: {error}")
 
 
 async def execute_command(
@@ -160,15 +187,18 @@ async def execute(
         host_name
     ]  # Get the host-specific output queue
 
+    # Prepare the ending line once
+    ending_line = "-" * remote_width
+    end_marker = (
+        f"{HOST_COLOR.get(host_name)}{ending_line}{RESET}"
+        if COLOR
+        else ending_line
+    )
+
     try:
         conn = await establish_ssh_connection(
             ip_address, ssh_port, username, key_path, default_key
         )
-    except ConnectionError as error:
-        await output_queue.put(f"Error connecting to {host_name}: {error}")
-        return
-
-    try:
         if separate_output:
             output = await execute_command(conn, ssh_command, remote_width)
             # Put output into the host's output queue
@@ -177,19 +207,15 @@ async def execute(
             await stream_command_output(
                 conn, ssh_command, remote_width, output_queue
             )
+    except ConnectionError as error:
+        await output_queue.put(f"Error connecting to {host_name}: {error}")
     except RuntimeError as error:
         await output_queue.put(
             f"Error executing command on {host_name}: {error}"
         )
-
-    # Signal end of output
-    ending_line = "-" * remote_width
-    if COLOR:
-        await output_queue.put(
-            f"{HOST_COLOR.get(host_name)}{ending_line}{RESET}"
-        )
-    else:
-        await output_queue.put(ending_line)
+    finally:
+        # Signal end of output once, regardless of success or failure
+        await output_queue.put(end_marker)
 
 
 async def print_output(
