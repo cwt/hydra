@@ -218,6 +218,15 @@ async def execute(
         await output_queue.put(end_marker)
 
 
+def clean_ansi_codes(line: str, prompt: str) -> str:
+    if line.startswith("\x1b["):
+        line = line.replace("\x1b[1E", f"\x1b[1E{prompt}")
+        line = line.replace("\x1b[1F", f"\x1b[1F{prompt}")
+        line = line.replace("\x1b[?25l", "")
+        line = line.replace("\x1b[?25h", "")
+    return line.rstrip()
+
+
 async def print_output(
     host_name: str,
     max_name_length: int,
@@ -233,13 +242,9 @@ async def print_output(
             break
         output = output.replace("\x1b[K", "\x1b[K\r\n")
         for line in output.split("\r\n"):
-            if line.startswith("\x1b["):
-                line = line.replace("\x1b[1E", f"\x1b[1E{prompt}")
-                line = line.replace("\x1b[1F", f"\x1b[1F{prompt}")
-                line = line.replace("\x1b[?25l", "")
-                line = line.replace("\x1b[?25h", "")
-            if allow_empty_line or line.strip():
-                print(f"{prompt}{line.rstrip()}{RESET}")
+            cleaned_line = clean_ansi_codes(line, prompt)
+            if allow_empty_line or cleaned_line.strip():
+                print(f"{prompt}{cleaned_line}{RESET}")
 
 
 async def main(
