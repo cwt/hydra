@@ -47,7 +47,7 @@ except ImportError:
     uvloop = None
 
 
-async def get_prompt(host_name: str, max_name_length: int) -> str:
+def get_prompt(host_name: str, max_name_length: int) -> str:
     """Generate a formatted prompt for displaying the host's name."""
     if COLOR:
         if HOST_COLOR.get(host_name) is None:
@@ -181,7 +181,7 @@ async def execute(
     default_key: Optional[str],
 ) -> None:
     """Establish an SSH connection and execute a command on a remote host."""
-    prompt = await get_prompt(host_name, max_name_length)
+    prompt = get_prompt(host_name, max_name_length)
     remote_width = local_display_width - max_name_length - 3
     output_queue = OUTPUT_QUEUES[
         host_name
@@ -225,7 +225,7 @@ async def print_output(
 ):
     """Print the output from the remote host with the appropriate prompt."""
     output_queue = OUTPUT_QUEUES[host_name]
-    prompt = await get_prompt(host_name, max_name_length)
+    prompt = get_prompt(host_name, max_name_length)
 
     while True:
         output = await output_queue.get()
