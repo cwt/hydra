@@ -56,6 +56,68 @@ def get_prompt(host_name: str, max_name_length: int) -> str:
     return f"[{host_name.rjust(max_name_length)}] "
 
 
+async def retry_connect(
+    ip_address: str,
+    ssh_port: int,
+    username: str,
+    client_keys: list[str],
+    timeout: float,
+    max_retries: int,
+) -> asyncssh.SSHClientConnection:
+    last_error = None
+    for attempt in range(max_retries + 1):
+        try:
+            return await asyncio.wait_for(
+                asyncssh.connect(
+                    host=ip_address,
+                    port=ssh_port,
+                    username=username,
+                    client_keys=client_keys,
+                    known_hosts=None,
+                    encryption_algs=[
+                        "chacha20-poly1305@openssh.com",
+                        "aes128-ctr",
+                        "aes256-ctr",
+                    ],
+                    mac_algs=["hmac-sha2-256", "hmac-sha1"],
+                ),
+                timeout=timeout,
+            )
+        except (asyncio.TimeoutError, asyncssh.Error) as error:
+            last_error = error
+            if attempt < max_retries:
+                await asyncio.sleep(1)
+    if isinstance(last_error, asyncio.TimeoutError):
+        raise ConnectionError(
+            f"Connection to {ip_address} timed out after {timeout}s"
+        )
+    raise ConnectionError(f"Error connecting to {ip_address}: {last_error}")
+
+
+def get_ssh_keys(
+    key_path: Optional[str], default_key: Optional[str]
+) -> list[str]:
+    """Determine SSH keys to use based on provided inputs."""
+    ssh_dir = os.path.expanduser("~/.ssh")
+    common_keys = [
+        os.path.join(ssh_dir, "id_ed25519"),
+        os.path.join(ssh_dir, "id_rsa"),
+        os.path.join(ssh_dir, "id_ecdsa"),
+        os.path.join(ssh_dir, "id_dsa"),
+    ]
+
+    if key_path and key_path != "#":
+        return [key_path]
+    if default_key:
+        return [default_key]
+    available_keys = [key for key in common_keys if os.path.exists(key)]
+    if not available_keys:
+        raise ConnectionError(
+            "No SSH keys found in ~/.ssh/ and no key specified"
+        )
+    return available_keys
+
+
 async def establish_ssh_connection(
     ip_address: str,
     ssh_port: int,
@@ -65,63 +127,11 @@ async def establish_ssh_connection(
     timeout: float = 5.0,
     max_retries: int = 2,
 ) -> asyncssh.SSHClientConnection:
-    """Establish an SSH connection using key authentication with timeout and retries."""
     try:
-        # Determine which key(s) to use
-        if key_path and key_path != "#":
-            # Use specific key from host file
-            client_keys = key_path
-        elif default_key:
-            # Use key from -K option
-            client_keys = default_key
-        else:
-            # Fallback to common SSH key files in ~/.ssh/
-            ssh_dir = os.path.expanduser("~/.ssh")
-            common_keys = [
-                os.path.join(ssh_dir, "id_ed25519"),
-                os.path.join(ssh_dir, "id_rsa"),
-                os.path.join(ssh_dir, "id_ecdsa"),
-                os.path.join(ssh_dir, "id_dsa"),
-            ]
-            client_keys = [key for key in common_keys if os.path.exists(key)]
-            if not client_keys:
-                raise ConnectionError(
-                    "No SSH keys found in ~/.ssh/ and no key specified"
-                )
-
-        # Attempt connection with retries
-        for attempt in range(max_retries + 1):
-            try:
-                conn = await asyncio.wait_for(
-                    asyncssh.connect(
-                        host=ip_address,
-                        port=ssh_port,
-                        username=username,
-                        client_keys=client_keys,
-                        known_hosts=None,  # Set to None to disable host key checks
-                        # Optimize connection by preferring faster ciphers/MACs
-                        encryption_algs=[
-                            "chacha20-poly1305@openssh.com",
-                            "aes128-ctr",
-                            "aes256-ctr",
-                        ],
-                        mac_algs=["hmac-sha2-256", "hmac-sha1"],
-                    ),
-                    timeout=timeout,
-                )
-                return conn
-            except asyncio.TimeoutError:
-                if attempt == max_retries:
-                    raise ConnectionError(
-                        f"Connection to {ip_address} timed out after {timeout}s"
-                    )
-                await asyncio.sleep(1)  # Brief delay before retry
-            except asyncssh.Error as error:
-                if attempt == max_retries:
-                    raise ConnectionError(
-                        f"Error connecting to {ip_address}: {error}"
-                    )
-                await asyncio.sleep(1)  # Brief delay before retry
+        client_keys = get_ssh_keys(key_path, default_key)
+        return await retry_connect(
+            ip_address, ssh_port, username, client_keys, timeout, max_retries
+        )
     except Exception as error:
         raise ConnectionError(f"Error connecting to {ip_address}: {error}")
 
