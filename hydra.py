@@ -95,7 +95,7 @@ async def retry_connect(
             ):
                 algorithm_options = {}
             if attempt < max_retries:
-                await asyncio.sleep(1)
+                await asyncio.sleep(0)
         except asyncio.TimeoutError as error:
             last_error = error
             if attempt < max_retries:
