@@ -82,6 +82,7 @@ async def retry_connect(
                     username=username,
                     client_keys=client_keys,
                     known_hosts=None,
+                    compression_algs=None,
                     **algorithm_options,
                 ),
                 timeout=timeout,
