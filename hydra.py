@@ -89,13 +89,15 @@ async def retry_connect(
             )
         except asyncssh.Error as error:
             last_error = error
+            _sleep = 1
             if (
                 getattr(error, "code", None)
                 == asyncssh.DISC_KEY_EXCHANGE_FAILED
             ):
                 algorithm_options = {}
+                _sleep = 0
             if attempt < max_retries:
-                await asyncio.sleep(0)
+                await asyncio.sleep(_sleep)
         except asyncio.TimeoutError as error:
             last_error = error
             if attempt < max_retries:
