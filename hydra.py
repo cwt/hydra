@@ -65,6 +65,14 @@ async def retry_connect(
     max_retries: int,
 ) -> asyncssh.SSHClientConnection:
     last_error = None
+    algorithm_options = {
+        "encryption_algs": [
+            "chacha20-poly1305@openssh.com",
+            "aes128-ctr",
+            "aes256-ctr",
+        ],
+        "mac_algs": ["hmac-sha2-256", "hmac-sha1"],
+    }
     for attempt in range(max_retries + 1):
         try:
             return await asyncio.wait_for(
@@ -74,16 +82,20 @@ async def retry_connect(
                     username=username,
                     client_keys=client_keys,
                     known_hosts=None,
-                    encryption_algs=[
-                        "chacha20-poly1305@openssh.com",
-                        "aes128-ctr",
-                        "aes256-ctr",
-                    ],
-                    mac_algs=["hmac-sha2-256", "hmac-sha1"],
+                    **algorithm_options,
                 ),
                 timeout=timeout,
             )
-        except (asyncio.TimeoutError, asyncssh.Error) as error:
+        except asyncssh.Error as error:
+            last_error = error
+            if (
+                getattr(error, "code", None)
+                == asyncssh.DISC_KEY_EXCHANGE_FAILED
+            ):
+                algorithm_options = {}
+            if attempt < max_retries:
+                await asyncio.sleep(1)
+        except asyncio.TimeoutError as error:
             last_error = error
             if attempt < max_retries:
                 await asyncio.sleep(1)
