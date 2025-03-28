@@ -114,6 +114,13 @@ def get_ssh_keys(
     key_path: Optional[str], default_key: Optional[str]
 ) -> list[str]:
     """Determine SSH keys to use based on provided inputs."""
+    # If key path is specified in the hosts file
+    if key_path and key_path != "#":
+        return [key_path]
+    # If key path is # (not specified) and default key is specified via -K
+    if default_key:
+        return [default_key]
+    # If key path is # (not specified) and default key is also not specified via -K
     ssh_dir = os.path.expanduser("~/.ssh")
     common_keys = [
         os.path.join(ssh_dir, "id_ed25519"),
@@ -121,11 +128,7 @@ def get_ssh_keys(
         os.path.join(ssh_dir, "id_ecdsa"),
         os.path.join(ssh_dir, "id_dsa"),
     ]
-
-    if key_path and key_path != "#":
-        return [key_path]
-    if default_key:
-        return [default_key]
+    # Try to find the available ssh key
     available_keys = [key for key in common_keys if os.path.exists(key)]
     if not available_keys:
         raise ConnectionError(
