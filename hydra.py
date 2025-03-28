@@ -407,7 +407,10 @@ if __name__ == "__main__":
         "-M",
         "--allow-cursor-movement",
         action="store_true",
-        help="Allow cursor movement codes",
+        help=(
+            "Allow cursor movement codes (useful for commands like fastfetch "
+            "or neofetch that rely on cursor positioning for layout)"
+        ),
     )
     parser.add_argument(
         "-V",
