@@ -10,6 +10,7 @@ VERSION = "0.9"
 import argparse
 import asyncio
 import os
+import re
 import sys
 from itertools import cycle
 from random import shuffle
@@ -186,7 +187,6 @@ async def stream_command_output(
             env={},
         ) as process:
             async for line in process.stdout:
-                line = line.rstrip()
                 # Put output into the host's output queue
                 await output_queue.put(line)
     except asyncssh.Error as error:
@@ -243,12 +243,29 @@ async def execute(
         await output_queue.put(end_marker)
 
 
-def clean_ansi_codes(line: str, prompt: str) -> str:
-    if line.startswith("\x1b["):
-        line = line.replace("\x1b[1E", f"\x1b[1E{prompt}")
-        line = line.replace("\x1b[1F", f"\x1b[1F{prompt}")
-        line = line.replace("\x1b[?25l", "")
-        line = line.replace("\x1b[?25h", "")
+def adjust_cursor_with_prompt(
+    line: str, prompt: str, allow_cursor_movement: bool
+) -> str:
+    # Adjust ANSI codes that control cursor, do not add prompt here
+    # Pattern to match common cursor movement ANSI codes
+    ansi_cursor_movement = re.compile(r"\x1b\[(\d+)?[ABEFCD]")
+    ansi_cursor_position = re.compile(r"\x1b\[\d+;\d+[HF]")
+    ansi_cursor_visibility = re.compile(r"\x1b\[[?]\d+[hl]")
+    ansi_cursor_save_restore = re.compile(r"\x1b\[[sSu]")
+
+    if not allow_cursor_movement:
+        # Remove cursor movement codes
+        line = ansi_cursor_movement.sub("", line)
+    # Remove cursor position codes
+    line = ansi_cursor_position.sub("", line)
+    # Remove cursor visibility codes
+    line = ansi_cursor_visibility.sub("", line)
+    # Remove cursor save/restore codes
+    line = ansi_cursor_save_restore.sub("", line)
+    # Remove erase line code
+    line = line.replace("\x1b[K", "")
+    # Remove carriage return to prevent overwriting
+    line = line.replace("\r", "")
     return line.rstrip()
 
 
@@ -256,6 +273,7 @@ async def print_output(
     host_name: str,
     max_name_length: int,
     allow_empty_line: bool,
+    allow_cursor_movement: bool,
     separate_output: bool,
     print_lock: asyncio.Lock,
 ):
@@ -267,21 +285,15 @@ async def print_output(
         output = await output_queue.get()
         if output is None:
             break
-        output = output.replace("\x1b[K", "\x1b[K\r\n")
-        lines = output.split("\r\n")
-        if separate_output:
-            # Synchronize printing of the entire output
-            async with print_lock:
-                for line in lines:
-                    cleaned_line = clean_ansi_codes(line, prompt)
-                    if allow_empty_line or cleaned_line.strip():
-                        print(f"{prompt}{cleaned_line}{RESET}")
-        else:
-            # Print lines as they come, allowing interleaving
+        lines = output.split("\n")
+        # Synchronize printing of the entire output
+        async with print_lock:
             for line in lines:
-                cleaned_line = clean_ansi_codes(line, prompt)
-                if allow_empty_line or cleaned_line.strip():
-                    print(f"{prompt}{cleaned_line}{RESET}")
+                adjusted_line = adjust_cursor_with_prompt(
+                    line, prompt, allow_cursor_movement
+                )
+                if allow_empty_line or adjusted_line.strip():
+                    print(f"{prompt}{adjusted_line}{RESET}")
 
 
 async def main(
@@ -290,6 +302,7 @@ async def main(
     local_display_width: int,
     separate_output: bool,
     allow_empty_line: bool,
+    allow_cursor_movement: bool,
     default_key: Optional[str],
 ) -> None:
     """Main entry point of the script."""
@@ -325,6 +338,7 @@ async def main(
             host_name,
             max_name_length,
             allow_empty_line,
+            allow_cursor_movement,
             separate_output,
             print_lock,
         )
@@ -384,10 +398,16 @@ if __name__ == "__main__":
         help="Set terminal width",
     )
     parser.add_argument(
-        "-A",
+        "-E",
         "--allow-empty-line",
         action="store_true",
         help="Allow printing the empty line",
+    )
+    parser.add_argument(
+        "-M",
+        "--allow-cursor-movement",
+        action="store_true",
+        help="Allow cursor movement codes",
     )
     parser.add_argument(
         "-V",
@@ -426,6 +446,7 @@ if __name__ == "__main__":
             local_display_width,
             args.separate_output,
             args.allow_empty_line,
+            args.allow_cursor_movement,
             args.default_key,
         )
     )
