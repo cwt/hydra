@@ -249,6 +249,7 @@ async def execute(
 def adjust_cursor_with_prompt(
     line: str, prompt: str, allow_cursor_control: bool
 ) -> str:
+    """Adjust the cursor control codes to display correctly with Hydra prompt."""
     # Pattern to match common cursor control and screen clear ANSI codes
     ansi_cursor_movement = re.compile(r"\x1b\[(\d+)?[ABEFCD]")
     ansi_cursor_position = re.compile(r"\x1b\[\d+;\d+[HF]")
