@@ -256,6 +256,8 @@ async def print_output(
     host_name: str,
     max_name_length: int,
     allow_empty_line: bool,
+    separate_output: bool,
+    print_lock: asyncio.Lock,
 ):
     """Print the output from the remote host with the appropriate prompt."""
     output_queue = OUTPUT_QUEUES[host_name]
@@ -266,10 +268,20 @@ async def print_output(
         if output is None:
             break
         output = output.replace("\x1b[K", "\x1b[K\r\n")
-        for line in output.split("\r\n"):
-            cleaned_line = clean_ansi_codes(line, prompt)
-            if allow_empty_line or cleaned_line.strip():
-                print(f"{prompt}{cleaned_line}{RESET}")
+        lines = output.split("\r\n")
+        if separate_output:
+            # Synchronize printing of the entire output
+            async with print_lock:
+                for line in lines:
+                    cleaned_line = clean_ansi_codes(line, prompt)
+                    if allow_empty_line or cleaned_line.strip():
+                        print(f"{prompt}{cleaned_line}{RESET}")
+        else:
+            # Print lines as they come, allowing interleaving
+            for line in lines:
+                cleaned_line = clean_ansi_codes(line, prompt)
+                if allow_empty_line or cleaned_line.strip():
+                    print(f"{prompt}{cleaned_line}{RESET}")
 
 
 async def main(
@@ -305,8 +317,17 @@ async def main(
         # Create an output queue for each host
         OUTPUT_QUEUES[host_name] = asyncio.Queue()
 
+    # Create a lock for synchronizing output printing
+    print_lock = asyncio.Lock()
+
     print_tasks = [
-        print_output(host_name, max_name_length, allow_empty_line)
+        print_output(
+            host_name,
+            max_name_length,
+            allow_empty_line,
+            separate_output,
+            print_lock,
+        )
         for host_name, *_ in hosts_to_execute
     ]
     asyncio.ensure_future(asyncio.gather(*print_tasks))
