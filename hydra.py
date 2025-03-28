@@ -244,28 +244,31 @@ async def execute(
 
 
 def adjust_cursor_with_prompt(
-    line: str, prompt: str, allow_cursor_movement: bool
+    line: str, prompt: str, allow_cursor_control: bool
 ) -> str:
-    # Adjust ANSI codes that control cursor, do not add prompt here
-    # Pattern to match common cursor movement ANSI codes
+    # Pattern to match common cursor control and screen clear ANSI codes
     ansi_cursor_movement = re.compile(r"\x1b\[(\d+)?[ABEFCD]")
     ansi_cursor_position = re.compile(r"\x1b\[\d+;\d+[HF]")
     ansi_cursor_visibility = re.compile(r"\x1b\[[?]\d+[hl]")
     ansi_cursor_save_restore = re.compile(r"\x1b\[[sSu]")
+    ansi_screen_clear = re.compile(r"\x1b\[\d*J")
 
-    if not allow_cursor_movement:
-        # Remove cursor movement codes
+    if not allow_cursor_control:
         line = ansi_cursor_movement.sub("", line)
-    # Remove cursor position codes
-    line = ansi_cursor_position.sub("", line)
-    # Remove cursor visibility codes
-    line = ansi_cursor_visibility.sub("", line)
-    # Remove cursor save/restore codes
-    line = ansi_cursor_save_restore.sub("", line)
-    # Remove erase line code
-    line = line.replace("\x1b[K", "")
-    # Remove carriage return to prevent overwriting
-    line = line.replace("\r", "")
+        line = ansi_cursor_position.sub("", line)
+        line = ansi_cursor_visibility.sub("", line)
+        line = ansi_cursor_save_restore.sub("", line)
+        line = ansi_screen_clear.sub("", line)
+
+    # If erase to the beginning of line, jump to col 0, add prompt, then return
+    line = line.replace("\x1b[1K", f"\x1b[1K\x1b[s\x1b[G{prompt}\x1b[u")
+
+    # If erase the whole line, jump to col 0, add prompt, then return
+    line = line.replace("\x1b[2K", f"\x1b[2K\x1b[s\x1b[G{prompt}\x1b[u")
+
+    # Add prompt to any carriage return
+    line = line.replace("\r", f"\r{prompt}")
+
     return line.rstrip()
 
 
@@ -273,7 +276,7 @@ async def print_output(
     host_name: str,
     max_name_length: int,
     allow_empty_line: bool,
-    allow_cursor_movement: bool,
+    allow_cursor_control: bool,
     separate_output: bool,
     print_lock: asyncio.Lock,
 ):
@@ -290,7 +293,7 @@ async def print_output(
         async with print_lock:
             for line in lines:
                 adjusted_line = adjust_cursor_with_prompt(
-                    line, prompt, allow_cursor_movement
+                    line, prompt, allow_cursor_control
                 )
                 if allow_empty_line or adjusted_line.strip():
                     print(f"{prompt}{adjusted_line}{RESET}")
@@ -302,7 +305,7 @@ async def main(
     local_display_width: int,
     separate_output: bool,
     allow_empty_line: bool,
-    allow_cursor_movement: bool,
+    allow_cursor_control: bool,
     default_key: Optional[str],
 ) -> None:
     """Main entry point of the script."""
@@ -338,7 +341,7 @@ async def main(
             host_name,
             max_name_length,
             allow_empty_line,
-            allow_cursor_movement,
+            allow_cursor_control,
             separate_output,
             print_lock,
         )
@@ -404,11 +407,11 @@ if __name__ == "__main__":
         help="Allow printing the empty line",
     )
     parser.add_argument(
-        "-M",
-        "--allow-cursor-movement",
+        "-C",
+        "--allow-cursor-control",
         action="store_true",
         help=(
-            "Allow cursor movement codes (useful for commands like fastfetch "
+            "Allow cursor control codes (useful for commands like fastfetch "
             "or neofetch that rely on cursor positioning for layout)"
         ),
     )
@@ -449,7 +452,7 @@ if __name__ == "__main__":
             local_display_width,
             args.separate_output,
             args.allow_empty_line,
-            args.allow_cursor_movement,
+            args.allow_cursor_control,
             args.default_key,
         )
     )
