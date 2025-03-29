@@ -255,11 +255,13 @@ async def execute(
 
 
 # Pattern to match common cursor control and screen clear ANSI codes
-ansi_cursor_movement = re.compile(r"\x1b\[(\d+)?[ABEFCD]")
-ansi_cursor_position = re.compile(r"\x1b\[\d+;\d+[HF]")
-ansi_cursor_visibility = re.compile(r"\x1b\[[?]\d+[hl]")
-ansi_cursor_save_restore = re.compile(r"\x1b\[[sSu]")
-ansi_screen_clear = re.compile(r"\x1b\[\d*J")
+ansi_cursor_control = re.compile(
+    r"\x1b\[(\d+)?[ABEFCD]|"  # cursor movement
+    r"\x1b\[\d+;\d+[HF]|"  # cursor position
+    r"\x1b\[[?]\d+[hl]|"  # cursor visibility
+    r"\x1b\[[sSu]|"  # cursor save/restore
+    r"\x1b\[\d*J"  # screen clear
+)
 
 
 def adjust_cursor_with_prompt(
@@ -267,11 +269,7 @@ def adjust_cursor_with_prompt(
 ) -> str:
     """Adjust the cursor control codes to display correctly with Hydra prompt."""
     if not allow_cursor_control:
-        line = ansi_cursor_movement.sub("", line)
-        line = ansi_cursor_position.sub("", line)
-        line = ansi_cursor_visibility.sub("", line)
-        line = ansi_cursor_save_restore.sub("", line)
-        line = ansi_screen_clear.sub("", line)
+        line = ansi_cursor_control.sub("", line)
 
     # If erase to the beginning of line, jump to col 0, add prompt, then return
     line = line.replace("\x1b[1K", f"\x1b[1K\x1b[s\x1b[G{prompt}\x1b[u")
