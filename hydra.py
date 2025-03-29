@@ -15,7 +15,7 @@ import sys
 from itertools import cycle
 from random import shuffle
 from types import ModuleType
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import asyncssh
 
@@ -40,7 +40,7 @@ OUTPUT_QUEUES: Dict[str, asyncio.Queue[str | None]] = {}
 # Large height for long outputs
 LINES = 1000
 
-uvloop: Optional[ModuleType] = None
+uvloop: ModuleType | None = None
 try:
     if sys.platform == "win32":
         import winloop as uvloop
