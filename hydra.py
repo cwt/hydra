@@ -14,7 +14,8 @@ import re
 import sys
 from itertools import cycle
 from random import shuffle
-from typing import Dict, List, Tuple, Optional
+from types import ModuleType
+from typing import Dict, List, Optional, Tuple
 
 import asyncssh
 
@@ -34,18 +35,19 @@ shuffle(COLORS)
 COLORS_CYCLE = cycle(COLORS)
 HOST_COLOR: Dict[str, str] = {}
 # Dictionary to hold separate output queues for each host
-OUTPUT_QUEUES: Dict[str, asyncio.Queue] = {}
+OUTPUT_QUEUES: Dict[str, asyncio.Queue[str | None]] = {}
 
 # Large height for long outputs
 LINES = 1000
 
+uvloop: Optional[ModuleType] = None
 try:
     if sys.platform == "win32":
         import winloop as uvloop
     else:
         import uvloop
 except ImportError:
-    uvloop = None
+    pass
 
 
 def get_prompt(host_name: str, max_name_length: int) -> str:
@@ -65,7 +67,7 @@ async def retry_connect(
     timeout: float,
     max_retries: int,
 ) -> asyncssh.SSHClientConnection:
-    last_error = None
+    last_error: asyncssh.Error | asyncio.TimeoutError | None = None
     algorithm_options = {
         "encryption_algs": [
             "chacha20-poly1305@openssh.com",
@@ -110,9 +112,7 @@ async def retry_connect(
     raise ConnectionError(f"Error connecting to {ip_address}: {last_error}")
 
 
-def get_ssh_keys(
-    key_path: Optional[str], default_key: Optional[str]
-) -> list[str]:
+def get_ssh_keys(key_path: str | None, default_key: str | None) -> list[str]:
     """Determine SSH keys to use based on provided inputs."""
     # If key path is specified in the hosts file
     if key_path and key_path != "#":
@@ -141,8 +141,8 @@ async def establish_ssh_connection(
     ip_address: str,
     ssh_port: int,
     username: str,
-    key_path: Optional[str],
-    default_key: Optional[str],
+    key_path: str | None,
+    default_key: str | None,
     timeout: float = 5.0,
     max_retries: int = 2,
 ) -> asyncssh.SSHClientConnection:
@@ -159,7 +159,7 @@ async def execute_command(
     conn: asyncssh.SSHClientConnection,
     ssh_command: str,
     remote_width: int,
-) -> str:
+) -> str | None:
     """Execute the given command on the remote host through the SSH connection."""
     try:
         result = await conn.run(
@@ -168,7 +168,12 @@ async def execute_command(
             term_size=(remote_width, LINES),
             env={},
         )
-        return result.stdout
+        if isinstance(result.stdout, bytes):
+            return result.stdout.decode("utf-8")
+        elif isinstance(result.stdout, str):
+            return result.stdout
+        else:
+            return None
     except asyncssh.Error as error:
         raise RuntimeError(f"Error executing command: {error}")
     finally:
@@ -188,10 +193,13 @@ async def stream_command_output(
             term_type="ansi" if COLOR else "dumb",
             term_size=(remote_width, 1000),
             env={},
-        ) as process:
-            async for line in process.stdout:
+        ) as process:  # type: asyncssh.SSHClientProcess
+            async for line in process.stdout:  # type: bytes | str
                 # Put output into the host's output queue
-                await output_queue.put(line)
+                if isinstance(line, bytes):
+                    await output_queue.put(line.decode("utf-8"))
+                else:
+                    await output_queue.put(line)
     except asyncssh.Error as error:
         await output_queue.put(f"Error executing command: {error}")
 
@@ -201,12 +209,12 @@ async def execute(
     ip_address: str,
     ssh_port: int,
     username: str,
-    key_path: Optional[str],
+    key_path: str | None,
     ssh_command: str,
     max_name_length: int,
     local_display_width: int,
     separate_output: bool,
-    default_key: Optional[str],
+    default_key: str | None,
 ) -> None:
     """Establish an SSH connection and execute a command on a remote host."""
     prompt = get_prompt(host_name, max_name_length)
@@ -311,10 +319,10 @@ async def main(
     separate_output: bool,
     allow_empty_line: bool,
     allow_cursor_control: bool,
-    default_key: Optional[str],
+    default_key: str | None,
 ) -> None:
     """Main entry point of the script."""
-    hosts_to_execute: List[Tuple[str, str, int, str, Optional[str]]] = []
+    hosts_to_execute: List[Tuple[str, str, int, str, str | None]] = []
 
     with open(host_file, "r", encoding="utf-8") as hosts:
         for line in hosts:
@@ -327,9 +335,8 @@ async def main(
                     username,
                     key_path,
                 ) = line.split(",")
-                ssh_port = int(ssh_port)
                 hosts_to_execute.append(
-                    (host_name, ip_address, ssh_port, username, key_path)
+                    (host_name, ip_address, int(ssh_port), username, key_path)
                 )
 
     max_name_length = max(len(name) for name, *_ in hosts_to_execute)
