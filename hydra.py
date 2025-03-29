@@ -184,7 +184,7 @@ async def stream_command_output(
     conn: asyncssh.SSHClientConnection,
     ssh_command: str,
     remote_width: int,
-    output_queue: asyncio.Queue,
+    output_queue: asyncio.Queue[str | None],
 ) -> None:
     """Stream the output of the command from the remote host to the output queue."""
     try:
