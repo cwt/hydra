@@ -8,13 +8,18 @@ Hydra is a command-line tool that allows users to execute commands on multiple r
 - Flexible and configurable host list format (CSV)
 - Supports SSH and public key authentication
 - Clean, lightweight, and easy-to-use command-line interface
+- Color-coded output for easy host identification
+- Option to separate output for each host without interleaving
+- Support for cursor control codes for commands requiring special layout (e.g., `fastfetch`, `neofetch`)
 
 ## Installation
 
 ### System Requirements
 
-- Python 3.8 or higher
+- Python 3.10 or higher
 - pip package manager
+- Required dependencies: `asyncssh`, `argparse`, `asyncio`
+- Optional: `uvloop` for improved performance on Unix-like systems
 
 ### Installing via Mercurial
 
@@ -31,38 +36,61 @@ $ pip install -r requirements.txt --user
 Alternatively, you can download the latest code:
 
 ```
-$ curl https://hg.sr.ht/~cwt/hydra/archive/tip.tar.gz |tar zxf -
+$ curl https://hg.sr.ht/~cwt/hydra/archive/tip.tar.gz | tar zxf -
 $ cd hydra-tip
 $ pip install -r requirements.txt --user
 ```
 
+**Note:** Ensure you have Python 3.10 or higher installed.
+
 ## Usage
 
-Create a hosts file in CSV format:
+### Hosts File Format
+
+Create a hosts file in CSV format with the following structure:
 
 ```csv
-#alias,ip,port,username,password
-host-1,10.0.0.1,user,pass
-host-2,10.0.0.2,user,#
+#alias,ip,port,username,key_path
+host-1,10.0.0.1,22,user,/home/user/.ssh/id_25519
+host-2,10.0.0.2,22,user,#
 ```
 
-notes:
+- Lines starting with `#` are ignored.
+- In the `key_path` field:
+  - Specify the path to the SSH private key file.
+  - Use `#` to indicate that the default key specified via the `-K` option should be used.
+  - If no key is specified and `#` is used without `-K`, Hydra will attempt to use common SSH keys in `~/.ssh/`.
 
-- Any line starts with `#` will be ignored.
-- One `#` in the password field means it will connect to the host via public key instead of password.
+### Running Commands
 
-command:
+To execute a command on the remote hosts, use:
 
 ```
 $ ./hydra.py [hosts file] [command]
 ```
+
+For example:
+
+```
+$ ./hydra.py hosts.csv "ls -l"
+```
+
+### Options
+
+- `-N, --no-color`: Disable host coloring.
+- `-S, --separate-output`: Print output from each host without interleaving.
+- `-W, --terminal-width`: Set terminal width manually.
+- `-E, --allow-empty-line`: Allow printing empty lines.
+- `-C, --allow-cursor-control`: Allow cursor control codes for commands like `fastfetch` or `neofetch`.
+- `-V, --version`: Show the version of Hydra.
+- `-K, --default-key`: Path to default SSH private key.
 
 ## License
 
 ```
 The MIT License (MIT)
 
-Copyright (c) 2023 cwt(at)bashell(dot)com
+Copyright (c) 2023-2025 cwt(at)bashell(dot)com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -82,3 +110,4 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
