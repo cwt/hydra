@@ -1,3 +1,0 @@
-asyncssh
-uvloop; sys.platform != 'win32'
-winloop; sys.platform == 'win32'

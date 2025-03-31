@@ -1,1 +1,3 @@
 hosts.*
+hydra_ssh/.mypy_cache/
+dist/
