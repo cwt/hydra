@@ -5,7 +5,7 @@ remote hosts at once via SSH. With Hydra, you can streamline your workflow,
 automate repetitive tasks, and save time and effort.
 """
 
-VERSION = "0.9"
+VERSION = "1.0.0"
 
 import argparse
 import asyncio
@@ -382,7 +382,7 @@ async def main(
         await OUTPUT_QUEUES[host_name].put(None)
 
 
-if __name__ == "__main__":
+def run_cli():
     parser = argparse.ArgumentParser(
         description="Execute commands on multiple remote hosts via SSH."
     )
@@ -466,3 +466,7 @@ if __name__ == "__main__":
             args.default_key,
         )
     )
+
+
+if __name__ == "__main__":
+    run_cli()
