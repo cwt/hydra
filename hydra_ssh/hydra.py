@@ -5,7 +5,9 @@ remote hosts at once via SSH. With Hydra, you can streamline your workflow,
 automate repetitive tasks, and save time and effort.
 """
 
-VERSION = "1.0.0"
+from importlib.metadata import version
+
+VERSION = version("hydra-ssh")
 
 import argparse
 import asyncio
@@ -382,14 +384,19 @@ async def main(
         await OUTPUT_QUEUES[host_name].put(None)
 
 
-def run_cli():
+def run_cli() -> None:
     parser = argparse.ArgumentParser(
         description="Execute commands on multiple remote hosts via SSH."
     )
-    parser.add_argument("host_file", help="File containing host information")
+    parser.add_argument(
+        "host_file",
+        nargs="?",
+        default=None,
+        help="File containing host information",
+    )
     parser.add_argument(
         "command",
-        nargs="+",
+        nargs=argparse.REMAINDER,
         help="Command to execute on remote hosts",
     )
     parser.add_argument(
@@ -437,23 +444,26 @@ def run_cli():
         type=str,
         help="Path to default SSH private key",
     )
-    args = parser.parse_args()
-
-    host_file: str = args.host_file
-    ssh_command: str = " ".join(args.command)
-    try:
-        local_display_width = args.terminal_width or int(
-            os.environ.get("COLUMNS", os.get_terminal_size().columns)
-        )
-    except OSError:
-        local_display_width = args.terminal_width or 80
-
+    args: argparse.Namespace = parser.parse_args()
     if uvloop:
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
     if args.version:
         print(
             f"Hydra-{VERSION} powered by {asyncio.get_event_loop_policy().__module__}"
         )
+        sys.exit(0)
+    host_file: str | None = args.host_file
+    ssh_command: str = " ".join(args.command)
+    if (host_file is None) or (not ssh_command.strip()):
+        parser.print_help()
+        sys.exit(0)
+    try:
+        local_display_width: int = args.terminal_width or int(
+            os.environ.get("COLUMNS", os.get_terminal_size().columns)
+        )
+    except OSError:
+        local_display_width = args.terminal_width or 80  # type: ignore
+    global COLOR
     COLOR = not args.no_color
     asyncio.run(
         main(
