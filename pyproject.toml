@@ -1,6 +1,6 @@
 [project]
 name = "hydra-ssh"
-version = "1.0.0"
+version = "1.0.1"
 description = "A command-line tool to execute commands on multiple remote hosts"
 authors = [
     {name = "Chaiwat Suttipongsakul",email = "cwt@bashell.com"}
@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [tool.poetry]
-repository = "https://github.com/cwt/hydra"
+repository = "https://hg.sr.ht/~cwt/hydra"
 
 [tool.poetry.scripts]
 hydra-ssh = "hydra_ssh.hydra:run_cli"
