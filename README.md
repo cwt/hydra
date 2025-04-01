@@ -1,6 +1,12 @@
-# Hydra
+# Ananta (formerly Hydra)
 
-Hydra is a command-line tool designed to execute commands on multiple remote hosts simultaneously via SSH. It streamlines workflows, automates repetitive tasks, and enhances efficiency for system administrators and developers managing distributed systems.
+Ananta is a *powerful* command-line tool that unleashes simultaneous SSH command execution across multiple remote hosts. It streamlines workflows, automates repetitive tasks, and enhances efficiency for system administrators and developers managing distributed systems.
+
+## Namesake
+
+Ananta, inspired by Ananta Shesha or Ananta Nagaraja (อนันตนาคราช), is a many-headed serpentine demigod from Hindu mythology that has taken deep root in Thai culture.
+
+This project used to be named Hydra, the many-headed serpent in Greek mythology. However, due to numerous Hydra and hydra-* projects on PyPI (see the old project at https://pypi.org/project/hydra-ssh/), I renamed it to Ananta-shorter and more unique!
 
 ## Features
 
@@ -23,13 +29,15 @@ Hydra is a command-line tool designed to execute commands on multiple remote hos
 
 ### Installing via pip
 
-Install Hydra directly using pip:
+Install Ananta directly using pip:
 
 ```
-$ pip install hydra-ssh --user
+$ pip install ananta --user
 ```
 
 **Note:** Ensure Python 3.10 or higher is installed on your system.
+
+**Note:** If you previously used `hydra-ssh`, switch to `pip install ananta` for the latest updates!
 
 ## Usage
 
@@ -47,20 +55,20 @@ host-2,10.0.0.2,22,user,#
 - `key_path`:
   - Specify the path to an SSH private key.
   - Use `#` to use the default key provided via the `-K` option.
-  - If `#` is used without `-K`, Hydra attempts to use common SSH keys from `~/.ssh/`.
+  - If `#` is used without `-K`, Ananta attempts to use common SSH keys from `~/.ssh/`.
 
 ### Running Commands
 
 Execute a command on remote hosts with:
 
 ```
-$ hydra-ssh [hosts file] [command]
+$ ananta [hosts file] [command]
 ```
 
 Example:
 
 ```
-$ hydra-ssh hosts.csv "uptime"
+$ ananta hosts.csv "uptime"
 ```
 
 ### Options
@@ -70,7 +78,7 @@ $ hydra-ssh hosts.csv "uptime"
 - `-W, --terminal-width`: Manually set terminal width
 - `-E, --allow-empty-line`: Permit printing of empty lines
 - `-C, --allow-cursor-control`: Enable cursor control codes (e.g., for `fastfetch` or `neofetch`)
-- `-V, --version`: Display Hydra version
+- `-V, --version`: Display Ananta version
 - `-K, --default-key`: Specify path to default SSH private key
 
 ## License

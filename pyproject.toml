@@ -1,6 +1,6 @@
 [project]
-name = "hydra-ssh"
-version = "1.0.2"
+name = "ananta"
+version = "1.0.3"
 description = "A command-line tool to execute commands on multiple remote hosts"
 authors = [
     {name = "Chaiwat Suttipongsakul",email = "cwt@bashell.com"}
@@ -15,14 +15,18 @@ dependencies = [
 ]
 
 [tool.poetry]
-homepage = "https://sr.ht/~cwt/hydra"
-repository = "https://hg.sr.ht/~cwt/hydra"
+homepage = "https://sr.ht/~cwt/ananta"
+repository = "https://hg.sr.ht/~cwt/ananta"
+
+[tool.poetry.urls]
+"GitHub Mirror" = "https://github.com/cwt/ananta"
 
 [tool.poetry.scripts]
-hydra-ssh = "hydra_ssh.hydra:run_cli"
+ananta = "ananta.ananta:run_cli"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.15.0"
+black = "^25.1.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 """
-Hydra: a command-line tool that allows users to execute commands on multiple
-remote hosts at once via SSH. With Hydra, you can streamline your workflow,
+Ananta: a command-line tool that allows users to execute commands on multiple
+remote hosts at once via SSH. With Ananta, you can streamline your workflow,
 automate repetitive tasks, and save time and effort.
 """
 
 from importlib.metadata import version
 
-VERSION = version("hydra-ssh")
+VERSION = version("ananta")
 
 import argparse
 import asyncio
@@ -269,7 +269,7 @@ ansi_cursor_control = re.compile(
 def adjust_cursor_with_prompt(
     line: str, prompt: str, allow_cursor_control: bool
 ) -> str:
-    """Adjust the cursor control codes to display correctly with Hydra prompt."""
+    """Adjust the cursor control codes to display correctly with Ananta prompt."""
     if not allow_cursor_control:
         line = ansi_cursor_control.sub("", line)
 
@@ -436,7 +436,7 @@ def run_cli() -> None:
         "-V",
         "--version",
         action="store_true",
-        help="Show the version of Hydra",
+        help="Show the version of Ananta",
     )
     parser.add_argument(
         "-K",
@@ -449,7 +449,7 @@ def run_cli() -> None:
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
     if args.version:
         print(
-            f"Hydra-{VERSION} powered by {asyncio.get_event_loop_policy().__module__}"
+            f"Ananta-{VERSION} powered by {asyncio.get_event_loop_policy().__module__}"
         )
         sys.exit(0)
     host_file: str | None = args.host_file
