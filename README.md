@@ -74,8 +74,9 @@ $ ananta -CS hosts.csv fastfetch
 
 **Demo:**
 
-- [![asciicast](https://asciinema.org/a/711115.svg)](https://asciinema.org/a/711115)
-- [![asciicast](https://asciinema.org/a/711116.svg)](https://asciinema.org/a/711116)
+[![asciicast](https://asciinema.org/a/711115.svg)](https://asciinema.org/a/711115)
+
+[![asciicast](https://asciinema.org/a/711116.svg)](https://asciinema.org/a/711116)
 
 ### Options
 
