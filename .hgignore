@@ -1,4 +1,4 @@
 hosts.*
 .mypy_cache/
 dist/
-hydra_ssh/.mypy_cache/
+ananta/.mypy_cache/
