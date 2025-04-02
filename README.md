@@ -1,22 +1,22 @@
 # Ananta (formerly Hydra)
 
-Ananta is a *powerful* command-line tool that unleashes simultaneous SSH command execution across multiple remote hosts. It streamlines workflows, automates repetitive tasks, and enhances efficiency for system administrators and developers managing distributed systems.
+Ananta is a *powerful* command-line tool designed to simplify simultaneous SSH command execution across multiple remote hosts. It enhances workflows, automates repetitive tasks, and improves efficiency for system administrators and developers managing distributed systems.
 
 ## Namesake
 
-Ananta, inspired by Ananta Shesha or Ananta Nagaraja (อนันตนาคราช), is a many-headed serpentine demigod from Hindu mythology that has taken deep root in Thai culture.
+Ananta draws inspiration from Ananta Shesha or Ananta Nagaraja (อนันตนาคราช), the many-headed serpentine demigod from Hindu mythology deeply rooted in Thai culture.
 
-This project used to be named Hydra, the many-headed serpent in Greek mythology. However, due to numerous Hydra and hydra-* projects on PyPI (see the old project at https://pypi.org/project/hydra-ssh/), I renamed it to Ananta-shorter and more unique!
+Initially, this project was named Hydra, referencing the many-headed serpent in Greek mythology. However, due to the abundance of projects named Hydra or hydra-* on PyPI (e.g., the previous project at [https://pypi.org/project/hydra-ssh/](https://pypi.org/project/hydra-ssh/)), it was renamed to Ananta. The commands you now use are `ananta`, which is shorter, more distinctive, and easier to remember than `hydra-ssh`.
 
 ## Features
 
-- Execute commands across multiple remote hosts concurrently
-- Supports flexible CSV-based host list configuration
+- Concurrent execution of commands across multiple remote hosts
+- Flexible CSV-based host list configuration
 - SSH authentication with public key support
-- Lightweight and intuitive command-line interface
+- Lightweight and user-friendly command-line interface
 - Color-coded output for easy host differentiation
-- Option to separate host outputs without interleaving
-- Handles cursor control codes for commands requiring specific layouts (e.g., `fastfetch`, `neofetch`)
+- Option to separate host outputs for clarity
+- Support for cursor control codes for specific layouts (e.g., `fastfetch`, `neofetch`)
 
 ## Installation
 
@@ -25,19 +25,18 @@ This project used to be named Hydra, the many-headed serpent in Greek mythology.
 - Python 3.10 or higher
 - `pip` package manager
 - Required dependencies: `asyncssh`, `argparse`, `asyncio`
-- Optional: `uvloop` (Unix-like systems) or `winloop` (Windows) for enhanced performance
+- Optional: `uvloop` (Unix-based systems) or `winloop` (Windows) for enhanced performance
 
 ### Installing via pip
 
-Install Ananta directly using pip:
+Install Ananta using pip:
 
+```bash
+pip install ananta --user
 ```
-$ pip install ananta --user
-```
 
-**Note:** Ensure Python 3.10 or higher is installed on your system.
-
-**Note:** If you previously used `hydra-ssh`, switch to `pip install ananta` for the latest updates!
+**Note:** Ensure Python 3.10 or higher is installed on your system.  
+If you previously used `hydra-ssh`, update your command to `pip install ananta` to access the latest version.
 
 ## Usage
 
@@ -51,24 +50,26 @@ host-1,10.0.0.1,22,user,/home/user/.ssh/id_ed25519
 host-2,10.0.0.2,22,user,#
 ```
 
-- Lines starting with `#` are ignored.
-- `key_path`:
-  - Specify the path to an SSH private key.
-  - Use `#` to use the default key provided via the `-K` option.
-  - If `#` is used without `-K`, Ananta attempts to use common SSH keys from `~/.ssh/`.
+- Lines beginning with `#` are ignored.
+- **`key_path` details:**
+  - Provide the path to an SSH private key.
+  - Use `#` to indicate the default key specified via the `-K` option.
+  - If `#` is used without `-K`, Ananta will attempt to use commonly available SSH keys from `~/.ssh/`.
 
 ### Running Commands
 
-Execute a command on remote hosts with:
+Run commands on remote hosts with:
 
-```
-$ ananta [hosts file] [command]
+```bash
+ananta <options> [hosts file] [command]
 ```
 
-Example:
+**Example:**
 
-```
-$ ananta hosts.csv "uptime"
+```console
+$ ananta hosts.csv uptime
+$ ananta -S sensors
+$ ananta -CS hosts.csv fastfetch
 ```
 
 ### Options
@@ -78,12 +79,12 @@ $ ananta hosts.csv "uptime"
 - `-W, --terminal-width`: Manually set terminal width
 - `-E, --allow-empty-line`: Permit printing of empty lines
 - `-C, --allow-cursor-control`: Enable cursor control codes (e.g., for `fastfetch` or `neofetch`)
-- `-V, --version`: Display Ananta version
-- `-K, --default-key`: Specify path to default SSH private key
+- `-V, --version`: Display the Ananta version
+- `-K, --default-key`: Specify the default SSH private key path
 
 ## License
 
-```
+```text
 The MIT License (MIT)
 
 Copyright (c) 2023-2025 cwt(at)bashell(dot)com
