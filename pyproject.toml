@@ -1,6 +1,6 @@
 [project]
 name = "ananta"
-version = "1.0.3"
+version = "1.0.4"
 description = "A command-line tool to execute commands on multiple remote hosts"
 authors = [
     {name = "Chaiwat Suttipongsakul",email = "cwt@bashell.com"}
@@ -9,7 +9,11 @@ license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "asyncssh (>=2.20.0,<3.0.0)",
+    "asyncssh (>=2.20.0,<3.0.0)"
+]
+
+[project.optional-dependencies]
+speed = [
     "uvloop (>=0.21.0,<0.22.0) ; sys_platform != \"win32\"",
     "winloop (>=0.1.8,<0.2.0) ; sys_platform == \"win32\""
 ]

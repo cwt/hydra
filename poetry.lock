@@ -418,10 +418,10 @@ files = [
 name = "uvloop"
 version = "0.21.0"
 description = "Fast implementation of asyncio event loop on top of libuv"
-optional = false
+optional = true
 python-versions = ">=3.8.0"
 groups = ["main"]
-markers = "sys_platform != \"win32\""
+markers = "sys_platform != \"win32\" and extra == \"speed\""
 files = [
     {file = "uvloop-0.21.0-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:ec7e6b09a6fdded42403182ab6b832b71f4edaf7f37a9a0e371a01db5f0cb45f"},
     {file = "uvloop-0.21.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:196274f2adb9689a289ad7d65700d37df0c0930fd8e4e743fa4834e850d7719d"},
@@ -471,10 +471,10 @@ test = ["aiohttp (>=3.10.5)", "flake8 (>=5.0,<6.0)", "mypy (>=0.800)", "psutil",
 name = "winloop"
 version = "0.1.8"
 description = "Windows version of uvloop"
-optional = false
+optional = true
 python-versions = ">=3.8.0"
 groups = ["main"]
-markers = "sys_platform == \"win32\""
+markers = "sys_platform == \"win32\" and extra == \"speed\""
 files = [
     {file = "winloop-0.1.8-cp310-cp310-win_amd64.whl", hash = "sha256:5c871a0d3100ac80ca813294f6c601d4537c2215bf608f395171003cf2540b5f"},
     {file = "winloop-0.1.8-cp311-cp311-win_amd64.whl", hash = "sha256:d2bbcd6fc2e3eb6b0e15b9641fd1fb80a2e573c9601689ad108815ce1cdaf9bf"},
@@ -490,7 +490,10 @@ dev = ["Cython (>=3.0,<4.0)", "setuptools (>=60)"]
 docs = ["Sphinx (>=4.1.2,<4.2.0)", "sphinx_rtd_theme (>=0.5.2,<0.6.0)", "sphinxcontrib-asyncio (>=0.3.0,<0.4.0)"]
 test = ["aiohttp (>=3.10.5)", "flake8 (>=5.0,<6.0)", "mypy (>=0.800)", "psutil", "pyOpenSSL (>=23.0.0,<23.1.0)", "pycodestyle (>=2.9.0,<2.10.0)"]
 
+[extras]
+speed = ["uvloop", "winloop"]
+
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10"
-content-hash = "ac94390f080b2bca6ba26ffb7912bd24c4542d32e486cdea4fa7d7c310368679"
+content-hash = "0a0c4f5bd48f68a702c267116896275ccdafb3fce15ebf202e11fcf9dd39eeb1"

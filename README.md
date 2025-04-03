@@ -35,6 +35,11 @@ Install Ananta using pip:
 pip install ananta --user
 ```
 
+Install Ananta using pip with `uvloop` or `winloop` for *speed* enhancement:
+```bash
+pip install ananta[speed] --user
+```
+
 **Note:** Ensure Python 3.10 or higher is installed on your system.  
 If you previously used `hydra-ssh`, update your command to `pip install ananta` to access the latest version.
 
@@ -72,12 +77,6 @@ $ ananta -S sensors
 $ ananta -CS hosts.csv fastfetch
 ```
 
-**Demo:**
-
-[![asciicast](https://asciinema.org/a/711115.svg)](https://asciinema.org/a/711115)
-
-[![asciicast](https://asciinema.org/a/711116.svg)](https://asciinema.org/a/711116)
-
 ### Options
 
 - `-N, --no-color`: Disable colorized output
@@ -87,6 +86,12 @@ $ ananta -CS hosts.csv fastfetch
 - `-C, --allow-cursor-control`: Enable cursor control codes (e.g., for `fastfetch` or `neofetch`)
 - `-V, --version`: Display the Ananta version
 - `-K, --default-key`: Specify the default SSH private key path
+
+### Demo
+
+[![asciicast](https://asciinema.org/a/711115.svg)](https://asciinema.org/a/711115)
+
+[![asciicast](https://asciinema.org/a/711116.svg)](https://asciinema.org/a/711116)
 
 ## License
 
