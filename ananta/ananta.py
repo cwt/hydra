@@ -400,30 +400,35 @@ def run_cli() -> None:
         help="Command to execute on remote hosts",
     )
     parser.add_argument(
+        "-n",
         "-N",
         "--no-color",
         action="store_true",
         help="Disable host coloring",
     )
     parser.add_argument(
+        "-s",
         "-S",
         "--separate-output",
         action="store_true",
         help="Print output from each host without interleaving",
     )
     parser.add_argument(
+        "-w",
         "-W",
         "--terminal-width",
         type=int,
         help="Set terminal width",
     )
     parser.add_argument(
+        "-e",
         "-E",
         "--allow-empty-line",
         action="store_true",
         help="Allow printing the empty line",
     )
     parser.add_argument(
+        "-c",
         "-C",
         "--allow-cursor-control",
         action="store_true",
@@ -433,12 +438,14 @@ def run_cli() -> None:
         ),
     )
     parser.add_argument(
+        "-v",
         "-V",
         "--version",
         action="store_true",
         help="Show the version of Ananta",
     )
     parser.add_argument(
+        "-k",
         "-K",
         "--default-key",
         type=str,
