@@ -45,13 +45,16 @@ async def main(
         for line in hosts:
             line = line.strip()
             if line and not line.startswith("#"):
+                unpacker = lambda h,i="",p=22,u=(),k="":(h,i,p,u,k)
                 (
                     host_name,
                     ip_address,
                     ssh_port,
                     username,
                     key_path,
-                ) = line.split(",")
+                ) = unpacker(*line.split(","))
+                if not ip_address:
+                    ip_address = host_name
                 hosts_to_execute.append(
                     (host_name, ip_address, int(ssh_port), username, key_path)
                 )
