@@ -50,9 +50,11 @@ If you previously used `hydra-ssh`, update your command to `pip install ananta` 
 Create a hosts file in CSV format with the following structure:
 
 ```csv
-#alias,ip,port,username,key_path
+#alias,ip,port,username,key_path,tags(optional - colon separated)
 host-1,10.0.0.1,22,user,/home/user/.ssh/id_ed25519
-host-2,10.0.0.2,22,user,#
+host-2,10.0.0.2,22,user,#,web
+host-3,10.0.0.3,22,user,#,arch:web
+host-4,10.0.0.4,22,user,#,ubuntu:db
 ```
 
 - Lines beginning with `#` are ignored.
@@ -75,12 +77,17 @@ ananta <options> [hosts file] [command]
 $ ananta hosts.csv uptime
 $ ananta -S sensors
 $ ananta -CS hosts.csv fastfetch
+$ ananta -t web,db hosts.csv uptime
+$ ananta -t arch hosts.csv sudo pacman -Syu --noconfirm
 ```
 
 ### Options
 
+**Single letter option is case-insensitive.**
+
 - `-N, --no-color`: Disable colorized output
 - `-S, --separate-output`: Display output from each host separately
+- `-T, --host-tags`: Host's tag(s) (comma separated)
 - `-W, --terminal-width`: Manually set terminal width
 - `-E, --allow-empty-line`: Permit printing of empty lines
 - `-C, --allow-cursor-control`: Enable cursor control codes (e.g., for `fastfetch` or `neofetch`)

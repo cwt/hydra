@@ -9,6 +9,7 @@ from importlib.metadata import version
 
 VERSION = version("ananta")
 
+from .config import get_hosts
 from .output import print_output
 from .ssh import execute
 from types import ModuleType
@@ -37,26 +38,11 @@ async def main(
     allow_cursor_control: bool,
     default_key: str | None,
     color: bool,
+    host_tags: str | None,
 ) -> None:
     """Main entry point of the script."""
-    hosts_to_execute: List[Tuple[str, str, int, str, str | None]] = []
 
-    with open(host_file, "r", encoding="utf-8") as hosts:
-        for line in hosts:
-            line = line.strip()
-            if line and not line.startswith("#"):
-                (
-                    host_name,
-                    ip_address,
-                    ssh_port,
-                    username,
-                    key_path,
-                ) = line.split(",")
-                hosts_to_execute.append(
-                    (host_name, ip_address, int(ssh_port), username, key_path)
-                )
-
-    max_name_length = max(len(name) for name, *_ in hosts_to_execute)
+    hosts_to_execute, max_name_length = get_hosts(host_file, host_tags)
 
     # Dictionary to hold separate output queues for each host
     output_queues: Dict[str, asyncio.Queue[str | None]] = {}
@@ -138,6 +124,13 @@ def run_cli() -> None:
         help="Print output from each host without interleaving",
     )
     parser.add_argument(
+        "-t",
+        "-T",
+        "--host-tags",
+        type=str,
+        help="Host's tag(s) (comma separated)",
+    )
+    parser.add_argument(
         "-w",
         "-W",
         "--terminal-width",
@@ -205,6 +198,7 @@ def run_cli() -> None:
             args.allow_cursor_control,
             args.default_key,
             color,
+            args.host_tags,
         )
     )
 
