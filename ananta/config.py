@@ -27,15 +27,16 @@ def get_hosts(host_file: str, host_tags: str | None) -> Tuple[List, int]:
                     if host_tags is None or set(tags.split(":")).intersection(
                         set(execute_tags)
                     ):
-                        hosts_to_execute.append(
-                            (
-                                host_name,
-                                ip_address,
-                                ssh_port,
-                                username,
-                                key_path,
+                        if not host_name.startswith("#"):
+                            hosts_to_execute.append(
+                                (
+                                    host_name,
+                                    ip_address,
+                                    ssh_port,
+                                    username,
+                                    key_path,
+                                )
                             )
-                        )
 
     max_name_length = max(len(name) for name, *_ in hosts_to_execute)
     return (hosts_to_execute, max_name_length)
