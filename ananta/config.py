@@ -19,6 +19,8 @@ def get_hosts(host_file: str, host_tags: str | None) -> Tuple[List, int]:
                     username = row[3]
                     key_path = row[4] if len(row) > 4 else ""
                     tags = row[5] if len(row) > 5 else ""
+                except IndexError:
+                    pass  # Ignore incomplete row
                 except ValueError:
                     print(
                         f"Hosts file: {host_file} parse error at row {row_line}. Skipping!"
@@ -38,5 +40,7 @@ def get_hosts(host_file: str, host_tags: str | None) -> Tuple[List, int]:
                                 )
                             )
 
-    max_name_length = max(len(name) for name, *_ in hosts_to_execute)
-    return (hosts_to_execute, max_name_length)
+    if hosts_to_execute:
+        max_name_length = max(len(name) for name, *_ in hosts_to_execute)
+        return (hosts_to_execute, max_name_length)
+    return ([], 0)

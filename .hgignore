@@ -1,4 +1,5 @@
 hosts.*
 .mypy_cache/
+.pytest_cache/
 dist/
 ananta/.mypy_cache/
