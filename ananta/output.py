@@ -12,20 +12,33 @@ HOST_COLOR: Dict[str, str] = {}
 
 # Pattern to match common cursor control and screen clear ANSI codes
 ansi_cursor_control = re.compile(
-    r"\x1b\[(\d+)?[ABEFCD]|"  # cursor movement
+    r"\x1b\[(\d+)?[ABEFCDG]|"  # cursor movement
     r"\x1b\[\d+;\d+[HF]|"  # cursor position
     r"\x1b\[[?]\d+[hl]|"  # cursor visibility
     r"\x1b\[[sSu]|"  # cursor save/restore
     r"\x1b\[\d*J"  # screen clear
 )
 
+# Pattern to match cursor movement to a specific column (\x1b[nG)
+ansi_cursor_move_to_column = re.compile(r"\x1b\[(\d+)?G")
+
 
 def adjust_cursor_with_prompt(
-    line: str, prompt: str, allow_cursor_control: bool
+    line: str, prompt: str, allow_cursor_control: bool, max_name_length: int
 ) -> str:
     """Adjust the cursor control codes to display correctly with Ananta prompt."""
     if not allow_cursor_control:
         line = ansi_cursor_control.sub("", line)
+    else:
+        # Adjust \x1b[nG to account for prompt length
+        def adjust_cursor_movement(match):
+            n = (
+                int(match.group(1)) if match.group(1) else 1
+            )  # Default to 1 if no number
+            n += max_name_length + 3  # Add prompt length ("[max_name_length] ")
+            return f"\x1b[{n}G"
+
+        line = ansi_cursor_move_to_column.sub(adjust_cursor_movement, line)
 
     # If erase to the beginning of line, jump to col 0, add prompt, then return
     line = line.replace("\x1b[1K", f"\x1b[1K\x1b[s\x1b[G{prompt}\x1b[u")
@@ -83,14 +96,14 @@ async def print_output(
             async with print_lock:
                 for line in lines:
                     adjusted_line = adjust_cursor_with_prompt(
-                        line, prompt, allow_cursor_control
+                        line, prompt, allow_cursor_control, max_name_length
                     )
                     if allow_empty_line or adjusted_line.strip():
                         print(f"{prompt}{adjusted_line}{RESET}")
         else:
             for line in lines:
                 adjusted_line = adjust_cursor_with_prompt(
-                    line, prompt, allow_cursor_control
+                    line, prompt, allow_cursor_control, max_name_length
                 )
                 if allow_empty_line or adjusted_line.strip():
                     # Synchronize printing of a single line

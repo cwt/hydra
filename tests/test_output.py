@@ -100,7 +100,10 @@ def test_adjust_cursor_no_control(line_input, expected_output_no_control):
     """Tests that cursor controls are stripped when allow_cursor_control=False."""
     prompt = "[prompt] "
     adjusted = adjust_cursor_with_prompt(
-        line_input, prompt, allow_cursor_control=False
+        line_input,
+        prompt,
+        allow_cursor_control=False,
+        max_name_length=len(prompt) - 3,
     )
     # We also strip trailing whitespace/ANSI codes in the function
     assert adjusted == expected_output_no_control.rstrip()
@@ -128,12 +131,20 @@ def test_adjust_cursor_no_control(line_input, expected_output_no_control):
             "Text\x1b[2KFull erase",
             "Text\x1b[2K\x1b[s\x1b[G[prompt] \x1b[uFull erase",
         ),
+        # Adjust cursor movement to a specific column n+len('[prompt] ')
+        (
+            "Line with cursor moved to column 1\x1b[1G",
+            "Line with cursor moved to column 1\x1b[10G",
+        ),
     ],
 )
 def test_adjust_cursor_with_control(line_input, expected_output_with_control):
     """Tests that cursor controls are adjusted when allow_cursor_control=True."""
     prompt = "[prompt] "
     adjusted = adjust_cursor_with_prompt(
-        line_input, prompt, allow_cursor_control=True
+        line_input,
+        prompt,
+        allow_cursor_control=True,
+        max_name_length=len(prompt) - 3,
     )
     assert adjusted == expected_output_with_control.rstrip()
