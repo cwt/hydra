@@ -98,14 +98,14 @@ async def print_output(
                     adjusted_line = adjust_cursor_with_prompt(
                         line, prompt, allow_cursor_control, max_name_length
                     )
-                    if allow_empty_line or adjusted_line.strip():
+                    if allow_empty_line or line.strip():
                         print(f"{prompt}{adjusted_line}{RESET}")
         else:
             for line in lines:
                 adjusted_line = adjust_cursor_with_prompt(
                     line, prompt, allow_cursor_control, max_name_length
                 )
-                if allow_empty_line or adjusted_line.strip():
+                if allow_empty_line or line.strip():
                     # Synchronize printing of a single line
                     async with print_lock:
                         print(f"{prompt}{adjusted_line}{RESET}")
