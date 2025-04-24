@@ -32,7 +32,7 @@ async def retry_connect(
                     client_keys=client_keys,
                     known_hosts=None,
                     compression_algs=None,
-                    **algorithm_options,
+                    **algorithm_options,  # try with the lowest latency algorithm first
                 ),
                 timeout=timeout,
             )
@@ -43,8 +43,8 @@ async def retry_connect(
                 getattr(error, "code", None)
                 == asyncssh.DISC_KEY_EXCHANGE_FAILED
             ):
-                algorithm_options = {}
-                _sleep = 0
+                algorithm_options = {}  # try again with all available algorithm
+                _sleep = 0  # no need to sleep as this is an error on our side
             if attempt < max_retries:
                 await asyncio.sleep(_sleep)
         except asyncio.TimeoutError as error:
