@@ -90,18 +90,17 @@ async def print_output(
         output = await output_queue.get()
         if output is None:
             break
-        lines = output.split("\n")
         if separate_output:
             # Synchronize printing of the entire output
             async with print_lock:
-                for line in lines:
+                for line in output.splitlines():
                     adjusted_line = adjust_cursor_with_prompt(
                         line, prompt, allow_cursor_control, max_name_length
                     )
                     if allow_empty_line or line.strip():
                         print(f"{prompt}{adjusted_line}{RESET}")
         else:
-            for line in lines:
+            for line in output.splitlines():
                 adjusted_line = adjust_cursor_with_prompt(
                     line, prompt, allow_cursor_control, max_name_length
                 )
