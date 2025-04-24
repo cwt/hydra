@@ -13,7 +13,7 @@ from .config import get_hosts
 from .output import print_output
 from .ssh import execute
 from types import ModuleType
-from typing import Dict, List, Tuple
+from typing import Dict
 import argparse
 import asyncio
 import os

@@ -1,5 +1,3 @@
-# tests/test_config.py
-import pytest
 from ananta.config import get_hosts
 
 # Sample CSV content for testing

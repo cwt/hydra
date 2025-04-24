@@ -1,6 +1,5 @@
-# tests/test_ssh_helpers.py
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import os  # For os.path.join
 
 # Assuming ssh.py is importable
