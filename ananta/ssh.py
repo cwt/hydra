@@ -106,7 +106,7 @@ async def execute_command(
     ssh_command: str,
     remote_width: int,
     color: bool,
-) -> str | None:
+) -> str:
     """Execute the given command on the remote host through the SSH connection."""
     try:
         result = await conn.run(
@@ -120,9 +120,11 @@ async def execute_command(
         elif isinstance(result.stdout, str):
             return result.stdout
         else:
-            return None
+            return f"Host returns unprintable output, got {type(result.stdout).__name__}"
+    except UnicodeDecodeError as error:
+        return "Host returns bytes that cannot be decoded as UTF-8"
     except asyncssh.Error as error:
-        raise RuntimeError(f"Error executing command: {error}")
+        return f"Error executing command: {error}"
     finally:
         conn.close()
 
@@ -145,9 +147,18 @@ async def stream_command_output(
             async for line in process.stdout:  # type: bytes | str
                 # Put output into the host's output queue
                 if isinstance(line, bytes):
-                    await output_queue.put(line.decode("utf-8"))
-                else:
+                    try:
+                        await output_queue.put(line.decode("utf-8"))
+                    except UnicodeDecodeError as error:
+                        await output_queue.put(
+                            f"Host returns line with bytes that cannot be decoded: {error}"
+                        )
+                elif isinstance(line, str):
                     await output_queue.put(line)
+                else:
+                    await output_queue.put(
+                        f"Host returns unprintable line: {repr(line)}"
+                    )
     except asyncssh.Error as error:
         await output_queue.put(f"Error executing command: {error}")
 
