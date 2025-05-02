@@ -67,8 +67,9 @@ def get_ssh_keys(key_path: str | None, default_key: str | None) -> list[str]:
     if default_key:
         return [default_key]
     # If key path is # (not specified) and default key is also not specified via -K
+    common_ssh_dir = os.path.expanduser("~/.ssh")
     common_keys = [
-        os.path.join(os.path.expanduser("~/.ssh"), key)
+        os.path.join(common_ssh_dir, key)
         for key in ["id_ed25519", "id_rsa", "id_ecdsa", "id_dsa"]
     ]
     # Try to find the available ssh key

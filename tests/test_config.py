@@ -1,8 +1,7 @@
 from ananta.config import get_hosts
 
 # Sample CSV content for testing
-HOSTS_CSV_CONTENT = """
-# This is a comment line
+HOSTS_CSV_CONTENT = """# This is a comment line
 host-1,10.0.0.1,22,user1,/path/to/key1,web:db
 host-2,10.0.0.2,2202,user2,#,web
 host-3,10.0.0.3,22,user3,/specific/key3,app

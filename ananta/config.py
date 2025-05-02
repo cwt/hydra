@@ -8,9 +8,8 @@ def get_hosts(host_file: str, host_tags: str | None) -> Tuple[List, int]:
     execute_tags = host_tags.split(",") if host_tags else []
 
     with open(host_file, "r", encoding="utf-8") as hosts:
-        row_line = 0
+        row_line = 1  # Start counting from 1 for human readability
         for row in csv.reader(hosts):
-            row_line += 1  # Row line always counts even if it is empty
             if row and not row[0].startswith("#"):
                 # Process the row only if it is not empty and not a comment
                 try:
@@ -39,6 +38,7 @@ def get_hosts(host_file: str, host_tags: str | None) -> Tuple[List, int]:
                                 key_path,
                             )
                         )
+            row_line += 1  # Row line always counts even if it is empty
 
     if hosts_to_execute:
         max_name_length = max(len(name) for name, *_ in hosts_to_execute)
