@@ -53,6 +53,7 @@ def adjust_cursor_with_prompt(
 
 
 def _get_host_color(host_name: str) -> str:
+    """Get the color associated with the host name."""
     if HOST_COLOR.get(host_name) is None:
         HOST_COLOR[host_name] = next(COLORS_CYCLE)
     return HOST_COLOR[host_name]

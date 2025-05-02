@@ -40,7 +40,7 @@ async def main(
     color: bool,
     host_tags: str | None,
 ) -> None:
-    """Main entry point of the script."""
+    """Main function to execute commands on multiple remote hosts."""
 
     hosts_to_execute, max_name_length = get_hosts(host_file, host_tags)
 
@@ -93,6 +93,7 @@ async def main(
 
 
 def run_cli() -> None:
+    """Command-line interface for Ananta."""
     parser = argparse.ArgumentParser(
         description="Execute commands on multiple remote hosts via SSH."
     )

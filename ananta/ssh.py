@@ -13,6 +13,7 @@ async def retry_connect(
     timeout: float,
     max_retries: int,
 ) -> asyncssh.SSHClientConnection:
+    """Attempt to establish an SSH connection with retries."""
     last_error: asyncssh.Error | asyncio.TimeoutError | None = None
     algorithm_options = {
         "encryption_algs": [
@@ -21,7 +22,7 @@ async def retry_connect(
             "aes256-ctr",
         ],
         "mac_algs": ["hmac-sha2-256", "hmac-sha1"],
-    }
+    }  # try with the lowest latency algorithm first
     for attempt in range(max_retries + 1):
         try:
             return await asyncio.wait_for(
@@ -32,7 +33,7 @@ async def retry_connect(
                     client_keys=client_keys,
                     known_hosts=None,
                     compression_algs=None,
-                    **algorithm_options,  # try with the lowest latency algorithm first
+                    **algorithm_options,
                 ),
                 timeout=timeout,
             )
@@ -90,6 +91,7 @@ async def establish_ssh_connection(
     timeout: float = 5.0,
     max_retries: int = 2,
 ) -> asyncssh.SSHClientConnection:
+    """Establish an SSH connection to the remote host."""
     try:
         client_keys = get_ssh_keys(key_path, default_key)
         return await retry_connect(
@@ -175,7 +177,7 @@ async def execute(
     output_queue: asyncio.Queue,
     color: bool,
 ) -> None:
-    """Establish an SSH connection and execute a command on a remote host."""
+    """Execute the SSH command on the remote host and handle the output."""
     remote_width = local_display_width - max_name_length - 3
 
     try:
