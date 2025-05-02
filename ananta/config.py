@@ -3,15 +3,16 @@ import csv
 
 
 def get_hosts(host_file: str, host_tags: str | None) -> Tuple[List, int]:
-    """Main entry point of the script."""
+    """Read the hosts file and return a list of hosts to execute commands on."""
     hosts_to_execute: List[Tuple[str, str, int, str, str]] = []
     execute_tags = host_tags.split(",") if host_tags else []
 
     with open(host_file, "r", encoding="utf-8") as hosts:
         row_line = 0
         for row in csv.reader(hosts):
-            if row:
-                row_line += 1
+            row_line += 1  # Row line always counts even if it is empty
+            if row and not row[0].startswith("#"):
+                # Process the row only if it is not empty and not a comment
                 try:
                     host_name = row[0]
                     ip_address = row[1]
@@ -29,16 +30,15 @@ def get_hosts(host_file: str, host_tags: str | None) -> Tuple[List, int]:
                     if host_tags is None or set(tags.split(":")).intersection(
                         set(execute_tags)
                     ):
-                        if not host_name.startswith("#"):
-                            hosts_to_execute.append(
-                                (
-                                    host_name,
-                                    ip_address,
-                                    ssh_port,
-                                    username,
-                                    key_path,
-                                )
+                        hosts_to_execute.append(
+                            (
+                                host_name,
+                                ip_address,
+                                ssh_port,
+                                username,
+                                key_path,
                             )
+                        )
 
     if hosts_to_execute:
         max_name_length = max(len(name) for name, *_ in hosts_to_execute)
