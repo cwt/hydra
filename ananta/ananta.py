@@ -45,11 +45,9 @@ async def main(
     hosts_to_execute, max_name_length = get_hosts(host_file, host_tags)
 
     # Dictionary to hold separate output queues for each host
-    output_queues: Dict[str, asyncio.Queue[str | None]] = {}
-
-    for host_name, *_ in hosts_to_execute:
-        # Create an output queue for each host
-        output_queues[host_name] = asyncio.Queue()
+    output_queues: Dict[str, asyncio.Queue[str | None]] = {
+        host_name: asyncio.Queue() for host_name, *_ in hosts_to_execute
+    }
 
     # Create a lock for synchronizing output printing
     print_lock = asyncio.Lock()
