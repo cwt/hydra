@@ -8,19 +8,20 @@ def get_hosts(host_file: str, host_tags: str | None) -> Tuple[List, int]:
     execute_tags = host_tags.split(",") if host_tags else []
 
     with open(host_file, "r", encoding="utf-8") as hosts:
-        row_line = 1  # Start counting from 1 for human readability
-        for row in csv.reader(hosts):
+        for row_line, row in enumerate(
+            csv.reader(hosts), start=1
+        ):  # Row line starts at 1 for human readability
             if row and not row[0].startswith("#"):
                 # Process the row only if it is not empty and not a comment
                 try:
-                    host_name = row[0]
-                    ip_address = row[1]
-                    ssh_port = int(row[2])
-                    username = row[3]
+                    host_name, ip_address, ssh_port, username = row[:4]
+                    ssh_port = int(ssh_port)
                     key_path = row[4] if len(row) > 4 else ""
                     tags = row[5] if len(row) > 5 else ""
                 except IndexError:
-                    pass  # Ignore incomplete row
+                    print(
+                        f"Hosts file: {host_file} row {row_line} is incomplete. Skipping!"
+                    )
                 except ValueError:
                     print(
                         f"Hosts file: {host_file} parse error at row {row_line}. Skipping!"
@@ -38,7 +39,6 @@ def get_hosts(host_file: str, host_tags: str | None) -> Tuple[List, int]:
                                 key_path,
                             )
                         )
-            row_line += 1  # Row line always counts even if it is empty
 
     if hosts_to_execute:
         max_name_length = max(len(name) for name, *_ in hosts_to_execute)
