@@ -5,9 +5,7 @@ remote hosts at once via SSH. With Ananta, you can streamline your workflow,
 automate repetitive tasks, and save time and effort.
 """
 
-from importlib.metadata import version
-
-VERSION = version("ananta")
+from . import __version__
 
 from .config import get_hosts
 from .output import print_output
@@ -172,7 +170,8 @@ def run_cli() -> None:
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
     if args.version:
         print(
-            f"Ananta-{VERSION} powered by {asyncio.get_event_loop_policy().__module__}"
+            f"Ananta-{__version__} "
+            f"powered by {asyncio.get_event_loop_policy().__module__}"
         )
         sys.exit(0)
     host_file: str | None = args.host_file
