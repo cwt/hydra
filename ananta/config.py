@@ -14,8 +14,8 @@ def get_hosts(host_file: str, host_tags: str | None) -> Tuple[List, int]:
             if row and not row[0].startswith("#"):
                 # Process the row only if it is not empty and not a comment
                 try:
-                    host_name, ip_address, ssh_port, username = row[:4]
-                    ssh_port = int(ssh_port)
+                    host_name, ip_address, str_port, username = row[:4]
+                    ssh_port = int(str_port)
                     key_path = row[4] if len(row) > 4 else ""
                     tags = row[5] if len(row) > 5 else ""
                 except IndexError:
